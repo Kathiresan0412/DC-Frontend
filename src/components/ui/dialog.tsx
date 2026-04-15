@@ -12,12 +12,12 @@ function Dialog({ ...props }: DialogPrimitive.Root.Props) {
 }
 
 function DialogTrigger({ asChild, children, className, ...props }: DialogPrimitive.Trigger.Props & { asChild?: boolean; className?: string }) {
-  if (asChild) {
+  if (asChild && React.isValidElement(children)) {
     return (
       <DialogPrimitive.Trigger 
         data-slot="dialog-trigger" 
         {...props} 
-        render={children}
+        render={children as any}
         className={className}
       />
     )

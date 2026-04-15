@@ -12,12 +12,12 @@ function Sheet({ ...props }: SheetPrimitive.Root.Props) {
 }
 
 function SheetTrigger({ asChild, children, className, ...props }: SheetPrimitive.Trigger.Props & { asChild?: boolean; className?: string }) {
-  if (asChild) {
+  if (asChild && React.isValidElement(children)) {
     return (
       <SheetPrimitive.Trigger
         data-slot="sheet-trigger"
         {...props}
-        render={children}
+        render={children as any}
         className={className}
       />
     )
