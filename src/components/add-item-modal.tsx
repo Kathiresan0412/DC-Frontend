@@ -42,7 +42,7 @@ export function AddItemModal({ onAdd }: { onAdd: (item: any) => void }) {
 
   return (
     <Dialog open={open} onOpenChange={setOpen}>
-      <DialogTrigger >
+      <DialogTrigger asChild>
         <Button className="bg-primary text-primary-foreground hover:bg-primary/90 gap-2 rounded-xl h-11 px-6 shadow-md shadow-primary/20 shrink-0">
           <Plus className="h-4 w-4" />
           Add Item
