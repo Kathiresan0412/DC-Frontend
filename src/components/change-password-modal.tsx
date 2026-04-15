@@ -54,7 +54,7 @@ export function ChangePasswordModal() {
 
   return (
     <Dialog open={open} onOpenChange={setOpen}>
-      <DialogTrigger asChild>
+      <DialogTrigger >
         <Button variant="outline" className="w-full gap-2 border-border h-11 rounded-xl">
           <Key className="h-4 w-4" />
           Change Password

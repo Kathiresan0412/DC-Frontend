@@ -41,7 +41,7 @@ export function InviteMemberModal({ onInvite }: { onInvite: (member: any) => voi
 
   return (
     <Dialog open={open} onOpenChange={setOpen}>
-      <DialogTrigger asChild>
+      <DialogTrigger >
         <Button className="bg-primary text-primary-foreground hover:bg-primary/90 gap-2 rounded-xl h-11 px-6 shadow-md shadow-primary/20 shrink-0">
           <UserPlus className="h-4 w-4" />
           Invite Member

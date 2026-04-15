@@ -2,23 +2,23 @@
 
 import * as React from "react"
 import DashboardLayout from "@/components/dashboard-layout"
-import { 
-  Search, 
-  Filter, 
-  MoreVertical, 
-  Edit2, 
-  Trash2, 
+import {
+  Search,
+  Filter,
+  MoreVertical,
+  Edit2,
+  Trash2,
   ChevronRight,
   ChevronLeft
 } from "lucide-react"
 import { Button } from "@/components/ui/button"
-import { 
-  Table, 
-  TableBody, 
-  TableCell, 
-  TableHead, 
-  TableHeader, 
-  TableRow 
+import {
+  Table,
+  TableBody,
+  TableCell,
+  TableHead,
+  TableHeader,
+  TableRow
 } from "@/components/ui/table"
 import {
   DropdownMenu,
@@ -82,9 +82,9 @@ export default function InventoryPage() {
         <div className="flex flex-col md:flex-row items-center gap-4 bg-muted/30 p-4 rounded-2xl border border-border">
           <div className="relative flex-1 w-full">
             <Search className="absolute left-3 top-1/2 -translate-y-1/2 h-4 w-4 text-muted-foreground" />
-            <input 
-              type="text" 
-              placeholder="Search equipment..." 
+            <input
+              type="text"
+              placeholder="Search equipment..."
               className="bg-background border border-border rounded-xl pl-10 pr-4 py-2 w-full text-sm focus:outline-none focus:ring-2 focus:ring-primary/50"
             />
           </div>
@@ -133,13 +133,13 @@ export default function InventoryPage() {
                       <div className="flex items-center gap-2">
                         <span className={cn(
                           "h-2 w-2 rounded-full shrink-0",
-                          item.stock > 10 ? "bg-emerald-500" : 
-                          item.stock > 0 ? "bg-amber-500" : "bg-rose-500"
+                          item.stock > 10 ? "bg-emerald-500" :
+                            item.stock > 0 ? "bg-amber-500" : "bg-rose-500"
                         )} />
                         <span className={cn(
                           "text-[10px] sm:text-xs font-medium",
-                          item.stock > 10 ? "text-emerald-500" : 
-                          item.stock > 0 ? "text-amber-500" : "text-rose-500"
+                          item.stock > 10 ? "text-emerald-500" :
+                            item.stock > 0 ? "text-amber-500" : "text-rose-500"
                         )}>
                           {item.stock > 10 ? "Good Stock" : item.stock > 0 ? "Low Stock" : "Out of Stock"}
                         </span>
@@ -147,7 +147,7 @@ export default function InventoryPage() {
                     </TableCell>
                     <TableCell className="text-right">
                       <DropdownMenu>
-                        <DropdownMenuTrigger asChild>
+                        <DropdownMenuTrigger>
                           <Button variant="ghost" size="icon" className="text-muted-foreground hover:text-foreground">
                             <MoreVertical className="h-4 w-4" />
                           </Button>
