@@ -13,8 +13,35 @@ const geistMono = Geist_Mono({
 });
 
 export const metadata: Metadata = {
-  title: "ServiceHub",
+  metadataBase: new URL(process.env.NEXT_PUBLIC_APP_URL ?? "http://localhost:3000"),
+  title: {
+    default: "ServiceHub | Frozen Solution + Primecut Services",
+    template: "%s | ServiceHub",
+  },
   description: "Customer, invoice, payment, and service management for Frozen Solution and Primecut Services.",
+  icons: {
+    icon: "/servicehub-logo.png",
+    apple: "/servicehub-logo.png",
+  },
+  openGraph: {
+    title: "ServiceHub | Frozen Solution + Primecut Services",
+    description: "Customer, invoice, payment, and service management for Frozen Solution and Primecut Services.",
+    type: "website",
+    images: [
+      {
+        url: "/servicehub-logo.png",
+        width: 1717,
+        height: 916,
+        alt: "ServiceHub dashboard for Frozen Solution and Primecut Services",
+      },
+    ],
+  },
+  twitter: {
+    card: "summary_large_image",
+    title: "ServiceHub | Frozen Solution + Primecut Services",
+    description: "Customer, invoice, payment, and service management for Frozen Solution and Primecut Services.",
+    images: ["/servicehub-logo.png"],
+  },
 };
 
 import { ThemeProvider } from "@/components/theme-provider";
