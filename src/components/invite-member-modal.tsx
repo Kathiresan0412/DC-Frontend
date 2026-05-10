@@ -21,22 +21,29 @@ import {
   SelectValue 
 } from "@/components/ui/select"
 import { UserPlus } from "lucide-react"
+import type { CreateUserPayload } from "@/lib/api"
 
-export function InviteMemberModal({ onInvite }: { onInvite: (member: any) => void }) {
+export function InviteMemberModal({ onInvite }: { onInvite: (member: CreateUserPayload) => Promise<void> | void }) {
   const [open, setOpen] = React.useState(false)
+  const [isLoading, setIsLoading] = React.useState(false)
   
-  const handleSubmit = (e: React.FormEvent) => {
+  const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault()
+    setIsLoading(true)
     const formData = new FormData(e.target as HTMLFormElement)
     const newMember = {
-      name: formData.get("name"),
-      email: formData.get("email"),
-      role: formData.get("role"),
-      status: "Active",
-      joined: new Date().toLocaleDateString('en-US', { month: 'short', day: 'numeric', year: 'numeric' })
+      full_name: String(formData.get("name") || ""),
+      email: String(formData.get("email") || ""),
+      password: String(formData.get("password") || ""),
+      role: String(formData.get("role") || "employee") as CreateUserPayload["role"],
     }
-    onInvite(newMember)
-    setOpen(false)
+
+    try {
+      await onInvite(newMember)
+      setOpen(false)
+    } finally {
+      setIsLoading(false)
+    }
   }
 
   return (
@@ -61,23 +68,29 @@ export function InviteMemberModal({ onInvite }: { onInvite: (member: any) => voi
           </div>
           <div className="grid gap-2">
             <Label htmlFor="email">Email Address</Label>
-            <Input id="email" name="email" type="email" placeholder="kamal@electra.com" required className="bg-background border-border" />
+            <Input id="email" name="email" type="email" placeholder="kamal@servicehub.local" required className="bg-background border-border" />
+          </div>
+          <div className="grid gap-2">
+            <Label htmlFor="password">Temporary Password</Label>
+            <Input id="password" name="password" type="password" minLength={6} placeholder="At least 6 characters" required className="bg-background border-border" />
           </div>
           <div className="grid gap-2">
             <Label htmlFor="role">Role & Permission</Label>
-            <Select name="role" defaultValue="Staff">
+            <Select name="role" defaultValue="employee">
               <SelectTrigger className="bg-background border-border">
                 <SelectValue placeholder="Select role" />
               </SelectTrigger>
               <SelectContent className="bg-card border-border">
-                <SelectItem value="Admin">Administrator (Full Access)</SelectItem>
-                <SelectItem value="Manager">Manager (Inventory & Reports)</SelectItem>
-                <SelectItem value="Staff">Field Staff (View & Stock Updates)</SelectItem>
+                <SelectItem value="admin">Administrator (Full Access)</SelectItem>
+                <SelectItem value="manager">Manager (Inventory & Reports)</SelectItem>
+                <SelectItem value="employee">Employee (View & Stock Updates)</SelectItem>
               </SelectContent>
             </Select>
           </div>
           <DialogFooter className="pt-4">
-            <Button type="submit" className="w-full bg-primary text-primary-foreground">Send Invitation</Button>
+            <Button disabled={isLoading} type="submit" className="w-full bg-primary text-primary-foreground">
+              {isLoading ? "Creating..." : "Create User"}
+            </Button>
           </DialogFooter>
         </form>
       </DialogContent>

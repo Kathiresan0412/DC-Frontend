@@ -14,7 +14,7 @@ import { Button } from "@/components/ui/button"
 import { Input } from "@/components/ui/input"
 import { Label } from "@/components/ui/label"
 import { Key, Eye, EyeOff } from "lucide-react"
-import { supabase } from "@/lib/supabase"
+import { authApi } from "@/lib/api"
 import { toast } from "sonner"
 
 export function ChangePasswordModal() {
@@ -37,16 +37,12 @@ export function ChangePasswordModal() {
     }
 
     try {
-      const { error } = await supabase.auth.updateUser({
-        password: newPassword
-      })
-
-      if (error) throw error
-
+      await authApi.changePassword(newPassword)
       toast.success("Password updated successfully")
       setOpen(false)
-    } catch (error: any) {
-      toast.error(error.message || "Failed to update password")
+    } catch (error: unknown) {
+      const message = error instanceof Error ? error.message : "Failed to update password"
+      toast.error(message)
     } finally {
       setIsLoading(false)
     }

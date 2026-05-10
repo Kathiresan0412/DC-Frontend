@@ -7,17 +7,19 @@ import { Button } from "@/components/ui/button"
 import { Input } from "@/components/ui/input"
 import { Label } from "@/components/ui/label"
 import { Eye, EyeOff, Mail, Lock } from "lucide-react"
-
-interface UserAuthFormProps extends React.HTMLAttributes<HTMLDivElement> {}
-
-import { supabase } from "@/lib/supabase"
+import { toast } from "sonner"
+import { authApi } from "@/lib/api"
 import { useRouter } from "next/navigation"
+
+type UserAuthFormProps = React.HTMLAttributes<HTMLDivElement>
 
 export function LoginForm({ className, ...props }: UserAuthFormProps) {
   const [isLoading, setIsLoading] = React.useState<boolean>(false)
   const [showPassword, setShowPassword] = React.useState<boolean>(false)
   const [email, setEmail] = React.useState("")
   const [password, setPassword] = React.useState("")
+  const [fullName, setFullName] = React.useState("")
+  const [setupMode, setSetupMode] = React.useState(false)
   const router = useRouter()
 
   async function onSubmit(event: React.SyntheticEvent) {
@@ -25,20 +27,40 @@ export function LoginForm({ className, ...props }: UserAuthFormProps) {
     setIsLoading(true)
 
     try {
-      const { data, error } = await supabase.auth.signInWithPassword({
+      const data = await authApi.login({
         email,
         password,
       })
 
-      if (error) {
-        throw error
-      }
-
+      authApi.setSession(data.token)
       router.push("/dashboard")
       router.refresh()
-    } catch (error: any) {
-      console.error("Login failed:", error.message)
-      // You should show a toast here
+    } catch (error: unknown) {
+      const message = error instanceof Error ? error.message : "Login failed"
+      console.error("Login failed:", message)
+      toast.error(message)
+    } finally {
+      setIsLoading(false)
+    }
+  }
+
+  async function onBootstrap(event: React.SyntheticEvent) {
+    event.preventDefault()
+    setIsLoading(true)
+
+    try {
+      const data = await authApi.bootstrap({
+        email,
+        password,
+        full_name: fullName,
+      })
+
+      authApi.setSession(data.token)
+      router.push("/dashboard")
+      router.refresh()
+    } catch (error: unknown) {
+      const message = error instanceof Error ? error.message : "Admin setup failed"
+      toast.error(message)
     } finally {
       setIsLoading(false)
     }
@@ -46,8 +68,23 @@ export function LoginForm({ className, ...props }: UserAuthFormProps) {
 
   return (
     <div className={cn("grid gap-5", className)} {...props}>
-      <form onSubmit={onSubmit}>
+      <form onSubmit={setupMode ? onBootstrap : onSubmit}>
         <div className="grid gap-4">
+          {setupMode && (
+            <div className="grid gap-2">
+              <Label htmlFor="fullName" className="text-sm font-medium text-muted-foreground">
+                Full Name
+              </Label>
+              <Input
+                id="fullName"
+                placeholder="Admin User"
+                disabled={isLoading}
+                value={fullName}
+                onChange={(e) => setFullName(e.target.value)}
+                className="h-11 rounded-xl border-border bg-background text-foreground placeholder:text-muted-foreground focus:ring-primary/20"
+              />
+            </div>
+          )}
           <div className="grid gap-2">
             <Label htmlFor="email" className="text-sm font-medium text-muted-foreground">
               Email
@@ -104,7 +141,7 @@ export function LoginForm({ className, ...props }: UserAuthFormProps) {
             {isLoading && (
               <Icons.spinner className="mr-2 h-4 w-4 animate-spin" />
             )}
-            Sign In
+            {setupMode ? "Create Admin" : "Sign In"}
           </Button>
         </div>
       </form>
@@ -115,39 +152,22 @@ export function LoginForm({ className, ...props }: UserAuthFormProps) {
         </div>
         <div className="relative flex justify-center text-xs uppercase">
           <span className="bg-card px-2 text-muted-foreground">
-            Or continue with
+            Admin creates your account
           </span>
         </div>
       </div>
-
-      <div className="grid grid-cols-2 gap-3">
-        <Button
-          variant="outline"
-          type="button"
-          disabled={isLoading}
-          className="h-11 rounded-xl border-border bg-background text-foreground hover:bg-muted transition-all"
-        >
-          {isLoading ? (
-            <Icons.spinner className="mr-2 h-4 w-4 animate-spin" />
-          ) : (
-            <Icons.gitHub className="mr-2 h-4 w-4" />
-          )}
-          GitHub
-        </Button>
-        <Button
-          variant="outline"
-          type="button"
-          disabled={isLoading}
-          className="h-11 rounded-xl border-border bg-background text-foreground hover:bg-muted transition-all"
-        >
-          {isLoading ? (
-            <Icons.spinner className="mr-2 h-4 w-4 animate-spin" />
-          ) : (
-            <Icons.google className="mr-2 h-4 w-4" />
-          )}
-          Google
-        </Button>
-      </div>
+      <p className="text-center text-xs leading-5 text-muted-foreground">
+        {setupMode ? "Only works while the users collection is empty." : "Use the email and temporary password provided by an administrator."}
+      </p>
+      <Button
+        type="button"
+        variant="ghost"
+        disabled={isLoading}
+        onClick={() => setSetupMode(!setupMode)}
+        className="h-9 text-xs text-muted-foreground"
+      >
+        {setupMode ? "Back to sign in" : "First setup? Create admin"}
+      </Button>
     </div>
   )
 }

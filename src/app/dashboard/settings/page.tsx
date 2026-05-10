@@ -19,7 +19,7 @@ export default function SettingsPage() {
       <div className="flex flex-col gap-6 md:gap-8 max-w-4xl mx-auto">
         <div>
           <h1 className="text-2xl md:text-3xl font-bold tracking-tight">System Settings</h1>
-          <p className="text-muted-foreground mt-1 text-sm">Configure your inventory system preferences.</p>
+          <p className="text-muted-foreground mt-1 text-sm">Configure invoice, reminder, security, and backup preferences.</p>
         </div>
 
         <div className="space-y-6">
@@ -30,28 +30,28 @@ export default function SettingsPage() {
                </div>
                <div>
                   <CardTitle>Notifications</CardTitle>
-                  <CardDescription>How you want to be alerted about stock levels.</CardDescription>
+                  <CardDescription>How you want to be alerted about due bills and customer activity.</CardDescription>
                </div>
             </CardHeader>
             <CardContent className="space-y-4 pt-4">
                <div className="flex items-center justify-between py-2">
                   <div>
-                    <p className="text-sm font-medium">Low Stock Alerts</p>
-                    <p className="text-xs text-muted-foreground">Notify when items fall below threshold.</p>
+                    <p className="text-sm font-medium">Due Bill Alerts</p>
+                    <p className="text-xs text-muted-foreground">Notify when invoices are due or overdue.</p>
                   </div>
                   <Switch defaultChecked />
                </div>
                <div className="flex items-center justify-between py-2">
                   <div>
                     <p className="text-sm font-medium">Daily Summary</p>
-                    <p className="text-xs text-muted-foreground">Receive a summary of today's movements.</p>
+                    <p className="text-xs text-muted-foreground">Receive a summary of today&apos;s services and payments.</p>
                   </div>
                   <Switch />
                </div>
                <div className="flex items-center justify-between py-2">
                   <div>
                     <p className="text-sm font-medium">Email Reports</p>
-                    <p className="text-xs text-muted-foreground">Send audit logs to admin email monthly.</p>
+                    <p className="text-xs text-muted-foreground">Email monthly invoice and payment reports.</p>
                   </div>
                   <Switch defaultChecked />
                </div>
@@ -93,14 +93,14 @@ export default function SettingsPage() {
                </div>
                <div>
                   <CardTitle>Backup & Restore</CardTitle>
-                  <CardDescription>Management of your inventory data.</CardDescription>
+                  <CardDescription>Management of your customer, invoice, service, and payment data.</CardDescription>
                </div>
             </CardHeader>
             <CardContent className="space-y-4 pt-4">
                <div className="flex items-center justify-between py-2">
                   <div>
                     <p className="text-sm font-medium">Cloud Automatic Backups</p>
-                    <p className="text-xs text-muted-foreground">Sync your database to Supabase cloud storage.</p>
+                    <p className="text-xs text-muted-foreground">Sync your database to MongoDB Atlas backups.</p>
                   </div>
                   <Switch defaultChecked />
                </div>
