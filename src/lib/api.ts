@@ -1,4 +1,5 @@
 import axios from 'axios'
+import type { AxiosError } from 'axios'
 
 export type AppRole = 'admin' | 'manager' | 'employee'
 export type UserStatus = 'active' | 'inactive'
@@ -25,8 +26,22 @@ export type UpdateUserPayload = Partial<{
 export type InventoryItemPayload = Record<string, unknown>
 
 const api = axios.create({
-  baseURL: process.env.NEXT_PUBLIC_API_URL || 'http://localhost:5000',
+  baseURL: process.env.NEXT_PUBLIC_API_URL || 'http://localhost:5001',
 })
+
+export const getApiErrorMessage = (error: unknown, fallback = 'Something went wrong') => {
+  const axiosError = error as AxiosError<{ error?: string }>
+
+  if (axiosError.response?.data?.error) {
+    return axiosError.response.data.error
+  }
+
+  if (error instanceof Error) {
+    return error.message
+  }
+
+  return fallback
+}
 
 api.interceptors.request.use((config) => {
   if (typeof window !== 'undefined') {

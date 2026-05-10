@@ -8,7 +8,7 @@ import { Input } from "@/components/ui/input"
 import { Label } from "@/components/ui/label"
 import { Eye, EyeOff, Mail, Lock } from "lucide-react"
 import { toast } from "sonner"
-import { authApi } from "@/lib/api"
+import { authApi, getApiErrorMessage } from "@/lib/api"
 import { useRouter } from "next/navigation"
 
 type UserAuthFormProps = React.HTMLAttributes<HTMLDivElement>
@@ -36,7 +36,7 @@ export function LoginForm({ className, ...props }: UserAuthFormProps) {
       router.push("/dashboard")
       router.refresh()
     } catch (error: unknown) {
-      const message = error instanceof Error ? error.message : "Login failed"
+      const message = getApiErrorMessage(error, "Login failed")
       console.error("Login failed:", message)
       toast.error(message)
     } finally {
@@ -59,7 +59,7 @@ export function LoginForm({ className, ...props }: UserAuthFormProps) {
       router.push("/dashboard")
       router.refresh()
     } catch (error: unknown) {
-      const message = error instanceof Error ? error.message : "Admin setup failed"
+      const message = getApiErrorMessage(error, "Admin setup failed")
       toast.error(message)
     } finally {
       setIsLoading(false)

@@ -35,23 +35,11 @@ export default function AuthenticationPage() {
               Manage customers, services, invoices, due bills, payments, and customer agreement links for snow removal and lawn care.
             </p>
 
-            <div className="mt-8 grid gap-3 sm:grid-cols-3">
-              {[
-                { icon: Users, label: "Customers" },
-                { icon: FileText, label: "Invoices" },
-                { icon: Receipt, label: "Payments" },
-              ].map((item) => (
-                <div key={item.label} className="rounded-lg border border-border bg-card p-4">
-                  <item.icon className="h-5 w-5 text-primary" />
-                  <p className="mt-3 text-sm font-semibold">{item.label}</p>
-                </div>
-              ))}
-            </div>
+          
 
             <div className="mt-8 rounded-2xl border border-border bg-card p-5 shadow-sm">
               <div className="mb-5">
                 <h2 className="text-lg font-semibold">Sign in</h2>
-                <p className="mt-1 text-sm text-muted-foreground">Admin, manager, and employee access.</p>
               </div>
               <LoginForm />
             </div>
