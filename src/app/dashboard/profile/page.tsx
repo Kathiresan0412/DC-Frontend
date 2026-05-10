@@ -201,6 +201,14 @@ export default function ProfilePage() {
                       Remove Image
                     </Button>
                   )}
+                  <Button
+                    type="submit"
+                    form="profile-form"
+                    disabled={isSaving || isLoading}
+                    className="w-full gap-2 h-11 rounded-xl shadow-lg shadow-primary/20 bg-primary"
+                  >
+                    {isSaving ? "Updating..." : "Update Profile"}
+                  </Button>
                 </div>
               </CardContent>
             </Card>
@@ -216,7 +224,7 @@ export default function ProfilePage() {
                 <CardDescription>Update your profile details below.</CardDescription>
               </CardHeader>
               <CardContent>
-                <form onSubmit={handleSubmit} className="space-y-6">
+                <form id="profile-form" onSubmit={handleSubmit} className="space-y-6">
                   <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
                     <div className="space-y-2 sm:col-span-2">
                       <Label htmlFor="fullName">Full Name</Label>
@@ -256,7 +264,7 @@ export default function ProfilePage() {
                     />
                   </div>
                   <div className="pt-4">
-                    <Button disabled={isSaving || isLoading} className="w-full sm:w-auto px-10 h-11 rounded-xl shadow-lg shadow-primary/20 bg-primary">
+                    <Button type="submit" disabled={isSaving || isLoading} className="w-full sm:w-auto px-10 h-11 rounded-xl shadow-lg shadow-primary/20 bg-primary">
                       {isSaving ? "Updating..." : "Update Profile"}
                     </Button>
                   </div>

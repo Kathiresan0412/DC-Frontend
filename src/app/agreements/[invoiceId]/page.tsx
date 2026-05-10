@@ -28,7 +28,7 @@ export default function AgreementPage() {
       try {
         const nextInvoice = await invoiceApi.getPublicInvoice(invoiceId)
         setInvoice(nextInvoice)
-        setPaidAmount(nextInvoice.receivable || nextInvoice.amount)
+        setPaidAmount(nextInvoice.receivable)
       } catch (error) {
         toast.error(getApiErrorMessage(error, "Invoice not found"))
       } finally {
@@ -46,6 +46,8 @@ export default function AgreementPage() {
     try {
       const result = await invoiceApi.confirmInvoice(invoiceId, { paidAmount, feedback })
       setInvoice(result.invoice)
+      setPaidAmount(result.invoice.receivable)
+      setFeedback("")
       toast.success("Agreement confirmed and payment slip emailed")
     } catch (error) {
       toast.error(getApiErrorMessage(error, "Failed to confirm agreement"))
@@ -78,6 +80,7 @@ export default function AgreementPage() {
 
   const receivable = Math.max(invoice.amount - invoice.paid, 0)
   const isConfirmed = Boolean(invoice.confirmed_at || invoice.proofPayment)
+  const canRecordPayment = receivable > 0
 
   return (
     <main className="min-h-screen bg-muted/30 px-4 py-8 text-foreground md:py-12">
@@ -130,11 +133,11 @@ export default function AgreementPage() {
               </dl>
             </div>
 
-            {isConfirmed && invoice.proofPayment ? (
+            {isConfirmed && invoice.proofPayment && (
               <div className="rounded-lg border border-emerald-500/30 bg-emerald-500/10 p-4">
                 <h3 className="flex items-center gap-2 font-semibold text-emerald-800 dark:text-emerald-300">
                   <CheckCircle2 className="h-4 w-4" />
-                  Payment proof generated
+                  Latest payment proof
                 </h3>
                 <dl className="mt-4 grid gap-3 text-sm sm:grid-cols-3">
                   <div>
@@ -152,9 +155,11 @@ export default function AgreementPage() {
                 </dl>
                 {invoice.feedback && <p className="mt-4 text-sm text-muted-foreground">Feedback: {invoice.feedback}</p>}
               </div>
-            ) : (
+            )}
+
+            {canRecordPayment ? (
               <form onSubmit={handleConfirm} className="rounded-lg border border-border p-4">
-                <h3 className="font-semibold">Customer Confirmation</h3>
+                <h3 className="font-semibold">{isConfirmed ? "Pending Payment" : "Customer Confirmation"}</h3>
                 <label className="mt-4 flex items-start gap-3 text-sm">
                   <input type="checkbox" className="mt-1 h-4 w-4 accent-emerald-700" required />
                   <span>I agree to the service terms, invoice amount, and payment responsibility for this service.</span>
@@ -162,8 +167,8 @@ export default function AgreementPage() {
 
                 <div className="mt-4 grid gap-4 sm:grid-cols-2">
                   <div className="grid gap-2">
-                    <Label htmlFor="paid-amount">Paid amount</Label>
-                    <Input id="paid-amount" type="number" min="0" max={invoice.amount} step="0.01" value={paidAmount} onChange={(event) => setPaidAmount(Number(event.target.value))} required />
+                    <Label htmlFor="paid-amount">Payment amount</Label>
+                    <Input id="paid-amount" type="number" min="0" max={receivable} step="0.01" value={paidAmount} onChange={(event) => setPaidAmount(Number(event.target.value))} required />
                   </div>
                   <div className="grid gap-2">
                     <Label htmlFor="feedback">Feedback or suggestion</Label>
@@ -173,9 +178,13 @@ export default function AgreementPage() {
 
                 <Button type="submit" disabled={isConfirming} className="mt-4 gap-2">
                   {isConfirming ? <Loader2 className="h-4 w-4 animate-spin" /> : <CreditCard className="h-4 w-4" />}
-                  Confirm and generate proof
+                  {isConfirmed ? "Record pending payment" : "Confirm and generate proof"}
                 </Button>
               </form>
+            ) : (
+              <div className="rounded-lg border border-border p-4 text-sm text-muted-foreground">
+                This invoice is fully paid. No pending amount remains.
+              </div>
             )}
           </div>
 
