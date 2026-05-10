@@ -33,7 +33,7 @@ const emptyCustomer: CustomerPayload = {
   email: "",
   phone: "",
   address: "",
-  business: "Frozen Solution",
+  business: "",
   plan: "",
   status: "Active",
   balance: 0,
@@ -110,7 +110,7 @@ function CustomerFormDialog({
         <DialogHeader>
           <DialogTitle>{customer ? "Edit customer" : "Add customer"}</DialogTitle>
           <DialogDescription>
-            {customer ? "Update customer contact, service, and balance details." : "Create a customer record for scheduling, billing, and service history."}
+            {customer ? "Update customer details, status, and receivable." : "Create a customer record with receivable tracking."}
           </DialogDescription>
         </DialogHeader>
         <form onSubmit={handleSubmit} className="grid gap-4">
@@ -128,28 +128,8 @@ function CustomerFormDialog({
               <Input id="customer-phone" value={form.phone} onChange={(event) => updateField("phone", event.target.value)} required />
             </div>
             <div className="grid gap-2">
-              <Label htmlFor="customer-business">Business</Label>
-              <select
-                id="customer-business"
-                value={form.business}
-                onChange={(event) => updateField("business", event.target.value)}
-                className="h-10 rounded-lg border border-input bg-background px-3 text-sm outline-none focus-visible:border-ring focus-visible:ring-3 focus-visible:ring-ring/50"
-              >
-                <option value="Frozen Solution">Frozen Solution</option>
-                <option value="Primecut Services">Primecut Services</option>
-              </select>
-            </div>
-          </div>
-
-          <div className="grid gap-2">
-            <Label htmlFor="customer-address">Address</Label>
-            <Input id="customer-address" value={form.address} onChange={(event) => updateField("address", event.target.value)} required />
-          </div>
-
-          <div className="grid gap-4 sm:grid-cols-3">
-            <div className="grid gap-2">
-              <Label htmlFor="customer-plan">Plan</Label>
-              <Input id="customer-plan" value={form.plan} onChange={(event) => updateField("plan", event.target.value)} required />
+              <Label htmlFor="customer-address">Address</Label>
+              <Input id="customer-address" value={form.address} onChange={(event) => updateField("address", event.target.value)} required />
             </div>
             <div className="grid gap-2">
               <Label htmlFor="customer-status">Status</Label>
@@ -165,14 +145,9 @@ function CustomerFormDialog({
               </select>
             </div>
             <div className="grid gap-2">
-              <Label htmlFor="customer-balance">Balance</Label>
+              <Label htmlFor="customer-balance">Receivable</Label>
               <Input id="customer-balance" type="number" min="0" step="0.01" value={form.balance} onChange={(event) => updateField("balance", Number(event.target.value))} required />
             </div>
-          </div>
-
-          <div className="grid gap-2">
-            <Label htmlFor="customer-last-service">Last service</Label>
-            <Input id="customer-last-service" value={form.lastService} onChange={(event) => updateField("lastService", event.target.value)} placeholder="May 10, 2026" required />
           </div>
 
           <DialogFooter>
@@ -259,7 +234,7 @@ export default function CustomersPage() {
         <div className="flex flex-col gap-4 sm:flex-row sm:items-end sm:justify-between">
           <div>
             <h1 className="text-2xl font-bold tracking-tight md:text-3xl">Customers</h1>
-            <p className="mt-1 text-sm text-muted-foreground">Store customer details, addresses, service plans, and balance records.</p>
+            <p className="mt-1 text-sm text-muted-foreground">Store customer contact details, status, and receivable records.</p>
           </div>
           <CustomerFormDialog
             onSave={handleSave}
@@ -283,7 +258,7 @@ export default function CustomersPage() {
 
         <div className="relative max-w-xl">
           <Search className="absolute left-3 top-1/2 h-4 w-4 -translate-y-1/2 text-muted-foreground" />
-          <Input value={query} onChange={(event) => setQuery(event.target.value)} placeholder="Search customer, business, email, or service..." className="h-10 pl-10" />
+          <Input value={query} onChange={(event) => setQuery(event.target.value)} placeholder="Search customer, email, phone, or address..." className="h-10 pl-10" />
         </div>
 
         {isLoading && (
@@ -308,11 +283,11 @@ export default function CustomersPage() {
                     <h2 className="text-lg font-semibold">{customer.name}</h2>
                     <span className={cn("rounded-md px-2 py-1 text-xs font-semibold", statusClasses[customer.status])}>{customer.status}</span>
                   </div>
-                  <p className="mt-1 text-sm text-muted-foreground">{customer.id} • {customer.business}</p>
+                  <p className="mt-1 text-sm text-muted-foreground">{[customer.id, customer.business].filter(Boolean).join(" • ")}</p>
                 </div>
                 <div className="flex items-start justify-between gap-3 sm:justify-end">
                   <div className="text-left sm:text-right">
-                    <p className="text-xs text-muted-foreground">Balance</p>
+                    <p className="text-xs text-muted-foreground">Receivable</p>
                     <p className={cn("text-xl font-bold", customer.balance > 0 ? "text-amber-700 dark:text-amber-300" : "text-emerald-700 dark:text-emerald-300")}>{formatCurrency(customer.balance)}</p>
                   </div>
                   <DropdownMenu>
@@ -344,10 +319,12 @@ export default function CustomersPage() {
                 <p className="flex items-center gap-2"><MapPin className="h-4 w-4" /> {customer.address}</p>
               </div>
 
-              <div className="mt-5 rounded-md bg-muted/40 p-3">
-                <p className="text-sm font-medium">{customer.plan}</p>
-                <p className="text-xs text-muted-foreground">Last service: {customer.lastService}</p>
-              </div>
+              {(customer.plan || customer.lastService) && (
+                <div className="mt-5 rounded-md bg-muted/40 p-3">
+                  {customer.plan && <p className="text-sm font-medium">{customer.plan}</p>}
+                  {customer.lastService && <p className="text-xs text-muted-foreground">Last service: {customer.lastService}</p>}
+                </div>
+              )}
             </section>
           ))}
         </div>

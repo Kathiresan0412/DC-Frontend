@@ -42,7 +42,31 @@ export type Customer = {
   updated_at?: string
 }
 
-export type CustomerPayload = Omit<Customer, 'id' | 'created_at' | 'updated_at'>
+export type CustomerPayload = Pick<Customer, 'name' | 'email' | 'phone' | 'address' | 'status' | 'balance'> & Partial<Pick<Customer, 'business' | 'plan' | 'lastService'>>
+
+export type ServiceStatus = 'Active' | 'Inactive'
+
+export type ServiceOffering = {
+  id: string
+  name: string
+  business: string
+  category: string
+  description: string
+  price: number
+  billing: string
+  status: ServiceStatus
+  includes: string[]
+  trustPoints: string[]
+  serviceArea: string
+  contactPhone: string
+  secondaryPhone: string
+  email: string
+  source: string
+  created_at?: string
+  updated_at?: string
+}
+
+export type ServicePayload = Omit<ServiceOffering, 'id' | 'created_at' | 'updated_at'>
 
 const api = axios.create({
   baseURL: process.env.NEXT_PUBLIC_API_URL || 'http://localhost:5001',
@@ -98,6 +122,13 @@ export const customerApi = {
   createCustomer: (customer: CustomerPayload): Promise<Customer> => api.post('/api/customers', customer).then(res => res.data),
   updateCustomer: (id: string, updates: Partial<CustomerPayload>): Promise<Customer> => api.put(`/api/customers/${id}`, updates).then(res => res.data),
   deleteCustomer: (id: string) => api.delete(`/api/customers/${id}`).then(res => res.data),
+}
+
+export const serviceApi = {
+  getServices: (): Promise<ServiceOffering[]> => api.get('/api/services').then(res => res.data),
+  createService: (service: ServicePayload): Promise<ServiceOffering> => api.post('/api/services', service).then(res => res.data),
+  updateService: (id: string, updates: Partial<ServicePayload>): Promise<ServiceOffering> => api.put(`/api/services/${id}`, updates).then(res => res.data),
+  deleteService: (id: string) => api.delete(`/api/services/${id}`).then(res => res.data),
 }
 
 export const userApi = {
