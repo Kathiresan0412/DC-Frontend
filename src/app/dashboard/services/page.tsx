@@ -4,6 +4,7 @@ import * as React from "react"
 import DashboardLayout from "@/components/dashboard-layout"
 import { formatCurrency } from "@/lib/business-data"
 import { getApiErrorMessage, serviceApi, type ServiceOffering, type ServicePayload, type ServiceStatus } from "@/lib/api"
+import { VoiceInputButton } from "@/components/voice-input-button"
 import { Button } from "@/components/ui/button"
 import { Input } from "@/components/ui/input"
 import { Label } from "@/components/ui/label"
@@ -52,6 +53,78 @@ const businessAccent: Record<string, string> = {
 
 const splitLines = (value: string) => value.split("\n").map((item) => item.trim()).filter(Boolean)
 const joinLines = (value: string[]) => value.join("\n")
+const splitVoiceList = (value: string) => value.split(/\s*(?:,| and | plus )\s*/i).map((item) => item.trim()).filter(Boolean)
+const escapeRegExp = (value: string) => value.replace(/[.*+?^${}()|[\]\\]/g, "\\$&")
+const normalizeEmail = (value: string) => value
+  .toLowerCase()
+  .replace(/\s+at\s+/g, "@")
+  .replace(/\s+dot\s+/g, ".")
+  .replace(/\s+/g, "")
+
+const serviceVoiceAliases = {
+  name: ["name", "service"],
+  business: ["business", "company"],
+  category: ["category"],
+  description: ["description", "details"],
+  price: ["price", "amount", "cost"],
+  billing: ["billing", "billing type"],
+  status: ["status"],
+  includes: ["includes", "include"],
+  trustPoints: ["trust points", "trust", "highlights"],
+  serviceArea: ["service area", "area"],
+  contactPhone: ["phone", "contact phone", "main phone"],
+  secondaryPhone: ["second phone", "secondary phone"],
+  email: ["email", "e mail"],
+  source: ["source"],
+} satisfies Record<keyof ServicePayload, string[]>
+
+const serviceVoiceLabels = Object.values(serviceVoiceAliases).flat()
+
+const getVoiceField = (transcript: string, aliases: string[]) => {
+  const boundary = serviceVoiceLabels.map(escapeRegExp).join("|")
+  const labels = aliases.map(escapeRegExp).join("|")
+  const match = transcript.match(new RegExp(`(?:^|[,.;]\\s*|\\s)(${labels})\\s*(?:is|as|:)?\\s*(.*?)(?=\\s+(?:${boundary})\\s*(?:is|as|:)?|[,.;]\\s*(?:${boundary})\\s*(?:is|as|:)?|$)`, "i"))
+
+  return match?.[2]?.trim()
+}
+
+const getBusinessDefaults = (business: string) => ({
+  business,
+  category: business === "Frozen Solution" ? "Snow Removal" : "Fresh Cut Services",
+  contactPhone: business === "Frozen Solution" ? "+1 647-212-3424" : "+1 647-765-0949",
+  secondaryPhone: "+1 647-854-5652",
+  email: business === "Frozen Solution" ? "frozensolutions92@gmail.com" : "freshcutservices92@gmail.com",
+})
+
+const parseServiceVoice = (transcript: string): Partial<ServicePayload> => {
+  const updates: Partial<ServicePayload> = {}
+
+  for (const [field, aliases] of Object.entries(serviceVoiceAliases) as [keyof ServicePayload, string[]][]) {
+    const value = getVoiceField(transcript, aliases)
+    if (!value) continue
+
+    if (field === "business") {
+      if (/primecut|prime cut|fresh cut/i.test(value)) {
+        Object.assign(updates, getBusinessDefaults("Primecut Services"))
+      } else if (/frozen/i.test(value)) {
+        Object.assign(updates, getBusinessDefaults("Frozen Solution"))
+      }
+    } else if (field === "email") {
+      updates.email = normalizeEmail(value)
+    } else if (field === "price") {
+      updates.price = Number(value.replace(/[^0-9.]/g, "")) || 0
+    } else if (field === "status") {
+      const normalizedStatus = serviceStatuses.find((status) => value.toLowerCase().includes(status.toLowerCase()))
+      if (normalizedStatus) updates.status = normalizedStatus
+    } else if (field === "includes" || field === "trustPoints") {
+      updates[field] = splitVoiceList(value)
+    } else {
+      updates[field] = value as never
+    }
+  }
+
+  return updates
+}
 
 function ServiceFormDialog({
   service,
@@ -110,14 +183,21 @@ function ServiceFormDialog({
   }
 
   const handleBusinessChange = (business: string) => {
-    setForm((current) => ({
-      ...current,
-      business,
-      category: business === "Frozen Solution" ? "Snow Removal" : "Fresh Cut Services",
-      contactPhone: business === "Frozen Solution" ? "+1 647-212-3424" : "+1 647-765-0949",
-      secondaryPhone: "+1 647-854-5652",
-      email: business === "Frozen Solution" ? "frozensolutions92@gmail.com" : "freshcutservices92@gmail.com",
-    }))
+    setForm((current) => ({ ...current, ...getBusinessDefaults(business) }))
+  }
+
+  const handleVoiceTranscript = (transcript: string) => {
+    const updates = parseServiceVoice(transcript)
+
+    if (Object.keys(updates).length === 0) {
+      toast.error("No service fields found")
+      return
+    }
+
+    setForm((current) => ({ ...current, ...updates }))
+    if (updates.includes) setIncludesText(joinLines(updates.includes))
+    if (updates.trustPoints) setTrustText(joinLines(updates.trustPoints))
+    toast.success("Service form filled from voice")
   }
 
   const handleSubmit = async (event: React.FormEvent<HTMLFormElement>) => {
@@ -141,10 +221,15 @@ function ServiceFormDialog({
       {trigger && <DialogTrigger asChild>{trigger}</DialogTrigger>}
       <DialogContent className="sm:max-w-3xl">
         <DialogHeader>
-          <DialogTitle>{service ? "Edit service" : "Add service"}</DialogTitle>
-          <DialogDescription>
-            Manage pricing, flyer details, contact information, and service bullet points.
-          </DialogDescription>
+          <div className="flex flex-col gap-3 sm:flex-row sm:items-start sm:justify-between">
+            <div>
+              <DialogTitle>{service ? "Edit service" : "Add service"}</DialogTitle>
+              <DialogDescription>
+                Manage pricing, flyer details, contact information, and service bullet points.
+              </DialogDescription>
+            </div>
+            <VoiceInputButton onTranscript={handleVoiceTranscript} disabled={isSaving} className="w-fit" />
+          </div>
         </DialogHeader>
         <form onSubmit={handleSubmit} className="grid max-h-[75vh] gap-4 overflow-y-auto pr-1">
           <div className="grid gap-4 sm:grid-cols-2">

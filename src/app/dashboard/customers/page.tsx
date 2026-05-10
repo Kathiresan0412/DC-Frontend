@@ -4,6 +4,7 @@ import * as React from "react"
 import DashboardLayout from "@/components/dashboard-layout"
 import { formatCurrency } from "@/lib/business-data"
 import { customerApi, getApiErrorMessage, type Customer, type CustomerPayload, type CustomerStatus } from "@/lib/api"
+import { VoiceInputButton } from "@/components/voice-input-button"
 import { Button } from "@/components/ui/button"
 import { Input } from "@/components/ui/input"
 import { Label } from "@/components/ui/label"
@@ -44,6 +45,57 @@ const statusClasses: Record<CustomerStatus, string> = {
   Active: "bg-emerald-500/10 text-emerald-700 dark:text-emerald-300",
   Due: "bg-amber-500/10 text-amber-700 dark:text-amber-300",
   "New lead": "bg-sky-500/10 text-sky-700 dark:text-sky-300",
+}
+
+const customerVoiceAliases = {
+  name: ["name", "customer"],
+  email: ["email", "e mail"],
+  phone: ["phone", "mobile", "number"],
+  address: ["address", "location"],
+  business: ["business", "company"],
+  plan: ["plan", "service", "package"],
+  status: ["status"],
+  balance: ["balance", "receivable", "amount due"],
+  lastService: ["last service", "last visit"],
+} satisfies Record<keyof CustomerPayload, string[]>
+
+const voiceLabels = Object.values(customerVoiceAliases).flat()
+const escapeRegExp = (value: string) => value.replace(/[.*+?^${}()|[\]\\]/g, "\\$&")
+
+const getVoiceField = (transcript: string, aliases: string[]) => {
+  const boundary = voiceLabels.map(escapeRegExp).join("|")
+  const labels = aliases.map(escapeRegExp).join("|")
+  const match = transcript.match(new RegExp(`(?:^|[,.;]\\s*|\\s)(${labels})\\s*(?:is|as|:)?\\s*(.*?)(?=\\s+(?:${boundary})\\s*(?:is|as|:)?|[,.;]\\s*(?:${boundary})\\s*(?:is|as|:)?|$)`, "i"))
+
+  return match?.[2]?.trim()
+}
+
+const normalizeEmail = (value: string) => value
+  .toLowerCase()
+  .replace(/\s+at\s+/g, "@")
+  .replace(/\s+dot\s+/g, ".")
+  .replace(/\s+/g, "")
+
+const parseCustomerVoice = (transcript: string): Partial<CustomerPayload> => {
+  const updates: Partial<CustomerPayload> = {}
+
+  for (const [field, aliases] of Object.entries(customerVoiceAliases) as [keyof CustomerPayload, string[]][]) {
+    const value = getVoiceField(transcript, aliases)
+    if (!value) continue
+
+    if (field === "email") {
+      updates.email = normalizeEmail(value)
+    } else if (field === "balance") {
+      updates.balance = Number(value.replace(/[^0-9.]/g, "")) || 0
+    } else if (field === "status") {
+      const normalizedStatus = customerStatuses.find((status) => value.toLowerCase().includes(status.toLowerCase()))
+      if (normalizedStatus) updates.status = normalizedStatus
+    } else {
+      updates[field] = value as never
+    }
+  }
+
+  return updates
 }
 
 function CustomerFormDialog({
@@ -91,6 +143,18 @@ function CustomerFormDialog({
     setForm((current) => ({ ...current, [field]: value }))
   }
 
+  const handleVoiceTranscript = (transcript: string) => {
+    const updates = parseCustomerVoice(transcript)
+
+    if (Object.keys(updates).length === 0) {
+      toast.error("No customer fields found")
+      return
+    }
+
+    setForm((current) => ({ ...current, ...updates }))
+    toast.success("Customer form filled from voice")
+  }
+
   const handleSubmit = async (event: React.FormEvent<HTMLFormElement>) => {
     event.preventDefault()
     setIsSaving(true)
@@ -108,10 +172,15 @@ function CustomerFormDialog({
       {trigger && <DialogTrigger asChild>{trigger}</DialogTrigger>}
       <DialogContent className="sm:max-w-2xl">
         <DialogHeader>
-          <DialogTitle>{customer ? "Edit customer" : "Add customer"}</DialogTitle>
-          <DialogDescription>
-            {customer ? "Update customer details, status, and receivable." : "Create a customer record with receivable tracking."}
-          </DialogDescription>
+          <div className="flex flex-col gap-3 sm:flex-row sm:items-start sm:justify-between">
+            <div>
+              <DialogTitle>{customer ? "Edit customer" : "Add customer"}</DialogTitle>
+              <DialogDescription>
+                {customer ? "Update customer details, status, and receivable." : "Create a customer record with receivable tracking."}
+              </DialogDescription>
+            </div>
+            <VoiceInputButton onTranscript={handleVoiceTranscript} disabled={isSaving} className="w-fit" />
+          </div>
         </DialogHeader>
         <form onSubmit={handleSubmit} className="grid gap-4">
           <div className="grid gap-4 sm:grid-cols-2">
