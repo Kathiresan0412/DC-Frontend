@@ -118,6 +118,33 @@ export type InvoicePayload = {
   status?: InvoiceStatus
 }
 
+export type Payment = {
+  id: string
+  payment_id: string
+  invoiceId: string
+  invoice_id: string
+  customerId: string
+  customer: string
+  email: string
+  business: string
+  service: string
+  method: string
+  amount: number
+  paid_at: string
+  date: string
+  notes: string
+  created_at?: string
+  updated_at?: string
+}
+
+export type PaymentPayload = {
+  invoiceId: string
+  method: string
+  amount: number
+  paid_at?: string
+  notes?: string
+}
+
 const api = axios.create({
   baseURL: process.env.NEXT_PUBLIC_API_URL || 'http://localhost:5001',
 })
@@ -188,6 +215,11 @@ export const invoiceApi = {
   getPublicInvoice: (invoiceId: string): Promise<Invoice> => api.get(`/api/public/invoices/${invoiceId}`).then(res => res.data),
   confirmInvoice: (invoiceId: string, payload: { paidAmount: number; feedback?: string }): Promise<{ invoice: Invoice; email: EmailLog }> =>
     api.post(`/api/public/invoices/${invoiceId}/confirm`, payload).then(res => res.data),
+}
+
+export const paymentApi = {
+  getPayments: (): Promise<Payment[]> => api.get('/api/payments').then(res => res.data),
+  createPayment: (payment: PaymentPayload): Promise<{ payment: Payment; invoice: Invoice }> => api.post('/api/payments', payment).then(res => res.data),
 }
 
 export const userApi = {
