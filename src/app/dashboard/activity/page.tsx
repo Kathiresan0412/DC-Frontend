@@ -12,7 +12,6 @@ import { cn } from "@/lib/utils"
 
 const entityTypes: Array<{ value: ActivityEntityType | ""; label: string }> = [
   { value: "", label: "All types" },
-  { value: "auth", label: "Auth" },
   { value: "profile", label: "Profile" },
   { value: "user", label: "Users" },
   { value: "item", label: "Inventory" },
@@ -24,7 +23,6 @@ const entityTypes: Array<{ value: ActivityEntityType | ""; label: string }> = [
 
 const actionOptions = [
   { value: "", label: "All actions" },
-  { value: "signed_in", label: "Signed in" },
   { value: "updated_profile", label: "Profile updated" },
   { value: "created_user", label: "User created" },
   { value: "updated_user", label: "User updated" },
@@ -211,7 +209,7 @@ export default function ActivityLogPage() {
           <div>
             <h1 className="text-2xl font-bold tracking-tight md:text-3xl">Activity Log</h1>
             <p className="mt-1 max-w-2xl text-sm text-muted-foreground md:text-base">
-              Review account, customer, invoice, payment, service, and inventory events with the full context behind each action.
+              Review customer, invoice, payment, service, inventory, profile, and user events with the full context behind each action.
             </p>
           </div>
           <Button variant="outline" className="gap-2" onClick={loadLogs} disabled={isLoading}>
