@@ -10,10 +10,10 @@ export default function AuthenticationPage() {
       <header className="flex items-center justify-between border-b border-border px-4 py-4 md:px-8">
         <div className="flex items-center gap-3">
           <div className="relative h-10 w-10 overflow-hidden rounded-lg border border-border bg-background">
-            <Image src="/servicehub-logo.png" alt="ServiceHub logo" fill className="object-cover" priority sizes="40px" />
+            <Image src="/primozen-logo.png" alt="Primozen logo" fill className="object-cover" priority sizes="40px" />
           </div>
           <div>
-            <p className="font-bold leading-tight">ServiceHub</p>
+            <p className="font-bold leading-tight">Primozen</p>
             <p className="text-xs text-muted-foreground">Frozen Solution + Primecut Services</p>
           </div>
         </div>

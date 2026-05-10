@@ -4,22 +4,22 @@ export const metadata: Metadata = {
   title: "Invoices",
   description: "Generate invoices, send customer agreement links, confirm payments, and track receivable amounts.",
   openGraph: {
-    title: "ServiceHub Invoices",
+    title: "Primozen Invoices",
     description: "Generate invoices, send customer agreement links, confirm payments, and track receivable amounts.",
     images: [
       {
-        url: "/servicehub-logo.png",
+        url: "/primozen-logo.png",
         width: 1717,
         height: 916,
-        alt: "ServiceHub invoice and payment management",
+        alt: "Primozen invoice and payment management",
       },
     ],
   },
   twitter: {
     card: "summary_large_image",
-    title: "ServiceHub Invoices",
+    title: "Primozen Invoices",
     description: "Generate invoices, send customer agreement links, confirm payments, and track receivable amounts.",
-    images: ["/servicehub-logo.png"],
+    images: ["/primozen-logo.png"],
   },
 }
 

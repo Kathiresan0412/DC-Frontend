@@ -68,7 +68,7 @@ export function InviteMemberModal({ onInvite }: { onInvite: (member: CreateUserP
           </div>
           <div className="grid gap-2">
             <Label htmlFor="email">Email Address</Label>
-            <Input id="email" name="email" type="email" placeholder="kamal@servicehub.local" required className="bg-background border-border" />
+            <Input id="email" name="email" type="email" placeholder="kamal@primozen.local" required className="bg-background border-border" />
           </div>
           <div className="grid gap-2">
             <Label htmlFor="password">Temporary Password</Label>

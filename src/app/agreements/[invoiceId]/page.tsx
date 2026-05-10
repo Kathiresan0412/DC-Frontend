@@ -70,7 +70,7 @@ export default function AgreementPage() {
       <main className="grid min-h-screen place-items-center bg-muted/30 px-4 text-foreground">
         <div className="text-center">
           <h1 className="text-2xl font-bold">Invoice not found</h1>
-          <Link href="/" className="mt-4 inline-flex text-sm font-medium text-primary">Return to ServiceHub</Link>
+          <Link href="/" className="mt-4 inline-flex text-sm font-medium text-primary">Return to Primozen</Link>
         </div>
       </main>
     )
@@ -104,7 +104,7 @@ export default function AgreementPage() {
                 This letter confirms that {invoice.customer} agrees to the quoted {invoice.service} service from {invoice.business}. By confirming, the customer accepts the service details, billing amount, due date, and payment responsibility.
               </p>
               <p className="mt-3 text-sm leading-6 text-muted-foreground">
-                After confirmation, ServiceHub updates the customer file with the latest service date, service name, paid amount, receivable amount, and customer feedback.
+                After confirmation, Primozen updates the customer file with the latest service date, service name, paid amount, receivable amount, and customer feedback.
               </p>
             </div>
 

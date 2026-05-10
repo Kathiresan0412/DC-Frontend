@@ -138,7 +138,7 @@ export const getApiErrorMessage = (error: unknown, fallback = 'Something went wr
 
 api.interceptors.request.use((config) => {
   if (typeof window !== 'undefined') {
-    const token = window.localStorage.getItem('servicehub_token')
+    const token = window.localStorage.getItem('primozen_token')
 
     if (token) {
       config.headers.Authorization = `Bearer ${token}`
@@ -153,10 +153,10 @@ export const authApi = {
   bootstrap: (user: { email: string; password: string; full_name: string }) => api.post('/api/auth/bootstrap', user).then(res => res.data),
   changePassword: (password: string) => api.post('/api/auth/change-password', { password }).then(res => res.data),
   setSession: (token: string) => {
-    window.localStorage.setItem('servicehub_token', token)
+    window.localStorage.setItem('primozen_token', token)
   },
   clearSession: () => {
-    window.localStorage.removeItem('servicehub_token')
+    window.localStorage.removeItem('primozen_token')
   },
 }
 

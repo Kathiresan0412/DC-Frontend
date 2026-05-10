@@ -9,22 +9,22 @@ export async function generateMetadata({ params }: { params: Promise<{ invoiceId
     title,
     description,
     openGraph: {
-      title: `${title} | ServiceHub`,
+      title: `${title} | Primozen`,
       description,
       images: [
         {
-          url: "/servicehub-logo.png",
+          url: "/primozen-logo.png",
           width: 1717,
           height: 916,
-          alt: "ServiceHub customer agreement and payment proof",
+          alt: "Primozen customer agreement and payment proof",
         },
       ],
     },
     twitter: {
       card: "summary_large_image",
-      title: `${title} | ServiceHub`,
+      title: `${title} | Primozen`,
       description,
-      images: ["/servicehub-logo.png"],
+      images: ["/primozen-logo.png"],
     },
   }
 }

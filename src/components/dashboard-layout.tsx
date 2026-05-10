@@ -78,10 +78,10 @@ const SidebarContent = ({
   <div className="flex flex-col h-full">
     <div className="flex items-center gap-3 mb-10 px-2 mt-2">
       <div className="relative h-10 w-10 overflow-hidden rounded-xl border border-border bg-background">
-        <Image src="/servicehub-logo.png" alt="ServiceHub logo" fill className="object-cover" sizes="40px" />
+        <Image src="/primozen-logo.png" alt="Primozen logo" fill className="object-cover" sizes="40px" />
       </div>
       <div className="min-w-0">
-        <span className="block truncate text-lg font-bold tracking-tight">ServiceHub</span>
+        <span className="block truncate text-lg font-bold tracking-tight">Primozen</span>
         <span className="block truncate text-xs text-muted-foreground">Snow and lawn care</span>
       </div>
     </div>

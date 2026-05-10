@@ -14,39 +14,39 @@ const geistMono = Geist_Mono({
 
 export const metadata: Metadata = {
   metadataBase: new URL(process.env.NEXT_PUBLIC_APP_URL ?? "http://localhost:3000"),
-  applicationName: "ServiceHub",
+  applicationName: "Primozen",
   title: {
-    default: "ServiceHub | Frozen Solution + Primecut Services",
-    template: "%s | ServiceHub",
+    default: "Primozen | Frozen Solution + Primecut Services",
+    template: "%s | Primozen",
   },
   description: "Customer, invoice, payment, and service management for Frozen Solution and Primecut Services.",
-  keywords: ["ServiceHub", "Frozen Solution", "Primecut Services", "invoices", "payments", "customers", "service management"],
+  keywords: ["Primozen", "Frozen Solution", "Primecut Services", "invoices", "payments", "customers", "service management"],
   icons: {
-    icon: "/servicehub-logo.png",
-    shortcut: "/servicehub-logo.png",
-    apple: "/servicehub-logo.png",
+    icon: "/primozen-logo.png",
+    shortcut: "/primozen-logo.png",
+    apple: "/primozen-logo.png",
   },
   openGraph: {
-    title: "ServiceHub | Frozen Solution + Primecut Services",
+    title: "Primozen | Frozen Solution + Primecut Services",
     description: "Customer, invoice, payment, and service management for Frozen Solution and Primecut Services.",
-    siteName: "ServiceHub",
+    siteName: "Primozen",
     url: "/",
     locale: "en_CA",
     type: "website",
     images: [
       {
-        url: "/servicehub-logo.png",
+        url: "/primozen-logo.png",
         width: 1717,
         height: 916,
-        alt: "ServiceHub dashboard for Frozen Solution and Primecut Services",
+        alt: "Primozen dashboard for Frozen Solution and Primecut Services",
       },
     ],
   },
   twitter: {
     card: "summary_large_image",
-    title: "ServiceHub | Frozen Solution + Primecut Services",
+    title: "Primozen | Frozen Solution + Primecut Services",
     description: "Customer, invoice, payment, and service management for Frozen Solution and Primecut Services.",
-    images: ["/servicehub-logo.png"],
+    images: ["/primozen-logo.png"],
   },
 };
 
