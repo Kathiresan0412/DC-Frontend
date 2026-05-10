@@ -1,6 +1,7 @@
 "use client"
 
 import * as React from "react"
+import Image from "next/image"
 import Link from "next/link"
 import { usePathname, useRouter } from "next/navigation"
 import { 
@@ -8,8 +9,6 @@ import {
   FileText,
   Handshake,
   Receipt,
-  Snowflake,
-  Sprout,
   Users, 
   Settings, 
   LogOut,
@@ -78,13 +77,8 @@ const SidebarContent = ({
 }) => (
   <div className="flex flex-col h-full">
     <div className="flex items-center gap-3 mb-10 px-2 mt-2">
-      <div className="grid h-10 w-10 grid-cols-2 overflow-hidden rounded-xl border border-border bg-background">
-        <div className="flex items-center justify-center bg-sky-700 text-white">
-          <Snowflake className="h-4 w-4" />
-        </div>
-        <div className="flex items-center justify-center bg-emerald-700 text-white">
-          <Sprout className="h-4 w-4" />
-        </div>
+      <div className="relative h-10 w-10 overflow-hidden rounded-xl border border-border bg-background">
+        <Image src="/servicehub-logo.png" alt="ServiceHub logo" fill className="object-cover" sizes="40px" />
       </div>
       <div className="min-w-0">
         <span className="block truncate text-lg font-bold tracking-tight">ServiceHub</span>

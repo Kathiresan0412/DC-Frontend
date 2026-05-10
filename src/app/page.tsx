@@ -2,7 +2,6 @@
 
 import Image from "next/image"
 import { ThemeToggle } from "@/components/theme-toggle"
-import { FileText, Receipt, Snowflake, Sprout, Users } from "lucide-react"
 import { LoginForm } from "@/components/login-form"
 
 export default function AuthenticationPage() {
@@ -10,13 +9,8 @@ export default function AuthenticationPage() {
     <div className="min-h-screen bg-background text-foreground">
       <header className="flex items-center justify-between border-b border-border px-4 py-4 md:px-8">
         <div className="flex items-center gap-3">
-          <div className="grid h-10 w-10 grid-cols-2 overflow-hidden rounded-lg border border-border">
-            <div className="flex items-center justify-center bg-sky-700 text-white">
-              <Snowflake className="h-4 w-4" />
-            </div>
-            <div className="flex items-center justify-center bg-emerald-700 text-white">
-              <Sprout className="h-4 w-4" />
-            </div>
+          <div className="relative h-10 w-10 overflow-hidden rounded-lg border border-border bg-background">
+            <Image src="/servicehub-logo.png" alt="ServiceHub logo" fill className="object-cover" priority sizes="40px" />
           </div>
           <div>
             <p className="font-bold leading-tight">ServiceHub</p>

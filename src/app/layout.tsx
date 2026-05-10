@@ -14,18 +14,24 @@ const geistMono = Geist_Mono({
 
 export const metadata: Metadata = {
   metadataBase: new URL(process.env.NEXT_PUBLIC_APP_URL ?? "http://localhost:3000"),
+  applicationName: "ServiceHub",
   title: {
     default: "ServiceHub | Frozen Solution + Primecut Services",
     template: "%s | ServiceHub",
   },
   description: "Customer, invoice, payment, and service management for Frozen Solution and Primecut Services.",
+  keywords: ["ServiceHub", "Frozen Solution", "Primecut Services", "invoices", "payments", "customers", "service management"],
   icons: {
     icon: "/servicehub-logo.png",
+    shortcut: "/servicehub-logo.png",
     apple: "/servicehub-logo.png",
   },
   openGraph: {
     title: "ServiceHub | Frozen Solution + Primecut Services",
     description: "Customer, invoice, payment, and service management for Frozen Solution and Primecut Services.",
+    siteName: "ServiceHub",
+    url: "/",
+    locale: "en_CA",
     type: "website",
     images: [
       {

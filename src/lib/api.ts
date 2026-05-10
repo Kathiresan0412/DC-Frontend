@@ -68,6 +68,56 @@ export type ServiceOffering = {
 
 export type ServicePayload = Omit<ServiceOffering, 'id' | 'created_at' | 'updated_at'>
 
+export type InvoiceStatus = 'Draft' | 'Sent' | 'Confirmed' | 'Paid' | 'Due' | 'Overdue'
+
+export type EmailLog = {
+  type: 'invoice' | 'payment_slip'
+  to: string
+  subject: string
+  body: string
+  sent_at: string
+}
+
+export type ProofPayment = {
+  totalAmount: number
+  paidAmount: number
+  receivableAmount: number
+  generated_at: string
+}
+
+export type Invoice = {
+  id: string
+  invoice_id: string
+  customerId: string
+  customer: string
+  email: string
+  business: string
+  serviceId: string
+  service: string
+  issued: string
+  due: string
+  amount: number
+  paid: number
+  receivable: number
+  status: InvoiceStatus
+  agreementLink: string
+  feedback: string
+  confirmed_at?: string
+  proofPayment?: ProofPayment
+  emails: EmailLog[]
+  created_at?: string
+  updated_at?: string
+}
+
+export type InvoicePayload = {
+  customerId: string
+  serviceId: string
+  due: string
+  amount: number
+  paid?: number
+  status?: InvoiceStatus
+}
+
 const api = axios.create({
   baseURL: process.env.NEXT_PUBLIC_API_URL || 'http://localhost:5001',
 })
@@ -129,6 +179,15 @@ export const serviceApi = {
   createService: (service: ServicePayload): Promise<ServiceOffering> => api.post('/api/services', service).then(res => res.data),
   updateService: (id: string, updates: Partial<ServicePayload>): Promise<ServiceOffering> => api.put(`/api/services/${id}`, updates).then(res => res.data),
   deleteService: (id: string) => api.delete(`/api/services/${id}`).then(res => res.data),
+}
+
+export const invoiceApi = {
+  getInvoices: (): Promise<Invoice[]> => api.get('/api/invoices').then(res => res.data),
+  createInvoice: (invoice: InvoicePayload): Promise<Invoice> => api.post('/api/invoices', invoice).then(res => res.data),
+  sendInvoice: (id: string): Promise<{ invoice: Invoice; email: EmailLog }> => api.post(`/api/invoices/${id}/send`).then(res => res.data),
+  getPublicInvoice: (invoiceId: string): Promise<Invoice> => api.get(`/api/public/invoices/${invoiceId}`).then(res => res.data),
+  confirmInvoice: (invoiceId: string, payload: { paidAmount: number; feedback?: string }): Promise<{ invoice: Invoice; email: EmailLog }> =>
+    api.post(`/api/public/invoices/${invoiceId}/confirm`, payload).then(res => res.data),
 }
 
 export const userApi = {
