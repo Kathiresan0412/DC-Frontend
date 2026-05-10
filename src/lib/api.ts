@@ -45,6 +45,16 @@ export type Customer = {
 
 export type CustomerPayload = Pick<Customer, 'name' | 'email' | 'phone' | 'address' | 'status' | 'balance'> & Partial<Pick<Customer, 'business' | 'plan' | 'lastService'>>
 
+export type PublicEnquiryPayload = {
+  name: string
+  email: string
+  phone: string
+  address: string
+  business: string
+  service: string
+  message?: string
+}
+
 export type ServiceStatus = 'Active' | 'Inactive'
 
 export type ServiceOffering = {
@@ -237,6 +247,10 @@ export const customerApi = {
   createCustomer: (customer: CustomerPayload): Promise<Customer> => api.post('/api/customers', customer).then(res => res.data),
   updateCustomer: (id: string, updates: Partial<CustomerPayload>): Promise<Customer> => api.put(`/api/customers/${id}`, updates).then(res => res.data),
   deleteCustomer: (id: string) => api.delete(`/api/customers/${id}`).then(res => res.data),
+}
+
+export const publicEnquiryApi = {
+  create: (enquiry: PublicEnquiryPayload): Promise<Customer> => api.post('/api/public/enquiries', enquiry).then(res => res.data),
 }
 
 export const serviceApi = {
