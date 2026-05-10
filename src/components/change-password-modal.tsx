@@ -14,7 +14,7 @@ import { Button } from "@/components/ui/button"
 import { Input } from "@/components/ui/input"
 import { Label } from "@/components/ui/label"
 import { Key, Eye, EyeOff } from "lucide-react"
-import { authApi } from "@/lib/api"
+import { authApi, getApiErrorMessage } from "@/lib/api"
 import { toast } from "sonner"
 
 export function ChangePasswordModal() {
@@ -27,8 +27,15 @@ export function ChangePasswordModal() {
     setIsLoading(true)
     
     const formData = new FormData(e.target as HTMLFormElement)
+    const currentPassword = formData.get("currentPassword") as string
     const newPassword = formData.get("password") as string
     const confirmPassword = formData.get("confirmPassword") as string
+
+    if (newPassword.length < 6) {
+      toast.error("Password must be at least 6 characters")
+      setIsLoading(false)
+      return
+    }
 
     if (newPassword !== confirmPassword) {
       toast.error("Passwords do not match")
@@ -37,12 +44,11 @@ export function ChangePasswordModal() {
     }
 
     try {
-      await authApi.changePassword(newPassword)
+      await authApi.changePassword(newPassword, currentPassword)
       toast.success("Password updated successfully")
       setOpen(false)
     } catch (error: unknown) {
-      const message = error instanceof Error ? error.message : "Failed to update password"
-      toast.error(message)
+      toast.error(getApiErrorMessage(error, "Failed to update password"))
     } finally {
       setIsLoading(false)
     }
@@ -65,6 +71,18 @@ export function ChangePasswordModal() {
         </DialogHeader>
         <form onSubmit={handleSubmit} className="grid gap-6 py-4">
           <div className="grid gap-2">
+            <Label htmlFor="currentPassword">Current Password</Label>
+            <Input 
+              id="currentPassword" 
+              name="currentPassword" 
+              type={showPassword ? "text" : "password"} 
+              placeholder="Current password" 
+              required 
+              autoComplete="current-password"
+              className="bg-background border-border" 
+            />
+          </div>
+          <div className="grid gap-2">
             <Label htmlFor="password">New Password</Label>
             <div className="relative">
               <Input 
@@ -73,6 +91,8 @@ export function ChangePasswordModal() {
                 type={showPassword ? "text" : "password"} 
                 placeholder="••••••••" 
                 required 
+                minLength={6}
+                autoComplete="new-password"
                 className="bg-background border-border pr-10" 
               />
               <button
@@ -92,6 +112,8 @@ export function ChangePasswordModal() {
               type={showPassword ? "text" : "password"} 
               placeholder="••••••••" 
               required 
+              minLength={6}
+              autoComplete="new-password"
               className="bg-background border-border" 
             />
           </div>

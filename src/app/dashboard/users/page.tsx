@@ -7,7 +7,8 @@ import {
   ShieldCheck,
   User,
   MoreVertical,
-  Loader2
+  Loader2,
+  Trash2
 } from "lucide-react"
 import { Button } from "@/components/ui/button"
 import { 
@@ -78,7 +79,7 @@ const RoleBadge = ({ role }: { role: AppRole }) => {
 
 export default function UsersPage() {
   const [users, setUsers] = React.useState<TeamMember[]>([])
-  const [profile, setProfile] = React.useState<{ role: AppRole } | null>(null)
+  const [profile, setProfile] = React.useState<{ id: string; role: AppRole } | null>(null)
   const [isLoading, setIsLoading] = React.useState(true)
 
   const loadUsers = React.useCallback(async () => {
@@ -109,10 +110,42 @@ export default function UsersPage() {
   }
 
   const handleStatusChange = async (member: TeamMember) => {
+    if (member.id === profile?.id) {
+      toast.error("You cannot mark your own account inactive")
+      return
+    }
+
     const nextStatus = member.status === "active" ? "inactive" : "active"
-    const updatedUser = await userApi.updateUser(member.id, { status: nextStatus })
-    setUsers(users.map((user) => user.id === member.id ? { ...user, ...updatedUser } : user))
-    toast.success(`User marked ${nextStatus}`)
+
+    try {
+      const updatedUser = await userApi.updateUser(member.id, { status: nextStatus })
+      setUsers(users.map((user) => user.id === member.id ? { ...user, ...updatedUser } : user))
+      toast.success(`User marked ${nextStatus}`)
+    } catch (error) {
+      toast.error(getErrorMessage(error, "Failed to update user"))
+    }
+  }
+
+  const handleDelete = async (member: TeamMember) => {
+    if (member.id === profile?.id) {
+      toast.error("You cannot delete your own account")
+      return
+    }
+
+    if (member.status !== "inactive") {
+      toast.error("Only inactive users can be deleted")
+      return
+    }
+
+    if (!window.confirm(`Delete ${member.full_name || member.email || "this user"}?`)) return
+
+    try {
+      await userApi.deleteUser(member.id)
+      setUsers(users.filter((user) => user.id !== member.id))
+      toast.success("User deleted")
+    } catch (error) {
+      toast.error(getErrorMessage(error, "Failed to delete user"))
+    }
   }
 
   return (
@@ -192,7 +225,10 @@ export default function UsersPage() {
                     </TableCell>
                   </TableRow>
                 )}
-                {users.map((member) => (
+                {users.map((member) => {
+                  const isSelf = member.id === profile?.id
+
+                  return (
                   <TableRow key={member.id} className="border-border hover:bg-muted/30 transition-colors">
                     <TableCell className="py-4">
                       <div className="flex items-center gap-3">
@@ -221,7 +257,7 @@ export default function UsersPage() {
                     </TableCell>
                     <TableCell className="text-right">
                       <DropdownMenu>
-                        <DropdownMenuTrigger>
+                        <DropdownMenuTrigger disabled={isSelf}>
                           <Button variant="ghost" size="icon" className="text-muted-foreground hover:text-foreground shrink-0">
                             <MoreVertical className="h-4 w-4" />
                           </Button>
@@ -230,11 +266,19 @@ export default function UsersPage() {
                           <DropdownMenuItem onClick={() => handleStatusChange(member)}>
                             Mark {member.status === "active" ? "inactive" : "active"}
                           </DropdownMenuItem>
+                          {member.status === "inactive" && (
+                            <DropdownMenuItem className="text-destructive focus:text-destructive" onClick={() => handleDelete(member)}>
+                              <Trash2 className="mr-2 h-4 w-4" />
+                              Delete user
+                            </DropdownMenuItem>
+                          )}
                         </DropdownMenuContent>
                       </DropdownMenu>
+                      {isSelf && <span className="sr-only">No self-management actions available</span>}
                     </TableCell>
                   </TableRow>
-                ))}
+                  )
+                })}
               </TableBody>
             </Table>
           </div>

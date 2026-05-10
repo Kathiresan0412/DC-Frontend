@@ -3,10 +3,11 @@
 import * as React from "react"
 import DashboardLayout from "@/components/dashboard-layout"
 import { 
+  Camera,
   Mail, 
   Phone, 
-  Camera,
   Shield,
+  Trash2,
 } from "lucide-react"
 import { Button } from "@/components/ui/button"
 import { Input } from "@/components/ui/input"
@@ -34,6 +35,7 @@ type Profile = {
   status: "active" | "inactive"
   phone?: string
   bio?: string
+  avatar_url?: string
 }
 
 const roleLabels: Record<Profile["role"], string> = {
@@ -44,9 +46,10 @@ const roleLabels: Record<Profile["role"], string> = {
 
 export default function ProfilePage() {
   const [profile, setProfile] = React.useState<Profile | null>(null)
-  const [form, setForm] = React.useState({ full_name: "", phone: "", bio: "" })
+  const [form, setForm] = React.useState({ full_name: "", phone: "", bio: "", avatar_url: "" })
   const [isLoading, setIsLoading] = React.useState(true)
   const [isSaving, setIsSaving] = React.useState(false)
+  const fileInputRef = React.useRef<HTMLInputElement>(null)
 
   React.useEffect(() => {
     async function loadProfile() {
@@ -57,6 +60,7 @@ export default function ProfilePage() {
           full_name: data.full_name || "",
           phone: data.phone || "",
           bio: data.bio || "",
+          avatar_url: data.avatar_url || "",
         })
       } catch (error: unknown) {
         toast.error(getErrorMessage(error, "Failed to load profile"))
@@ -82,11 +86,53 @@ export default function ProfilePage() {
     try {
       const updatedProfile = await userApi.updateProfile(form)
       setProfile(updatedProfile)
+      setForm({
+        full_name: updatedProfile.full_name || "",
+        phone: updatedProfile.phone || "",
+        bio: updatedProfile.bio || "",
+        avatar_url: updatedProfile.avatar_url || "",
+      })
+      window.dispatchEvent(new CustomEvent("primozen:profile-updated", { detail: updatedProfile }))
       toast.success("Profile updated successfully")
     } catch (error: unknown) {
       toast.error(getErrorMessage(error, "Failed to update profile"))
     } finally {
       setIsSaving(false)
+    }
+  }
+
+  const handleAvatarChange = (event: React.ChangeEvent<HTMLInputElement>) => {
+    const file = event.target.files?.[0]
+
+    if (!file) return
+
+    if (!file.type.startsWith("image/")) {
+      toast.error("Please choose an image file")
+      event.target.value = ""
+      return
+    }
+
+    if (file.size > 1_000_000) {
+      toast.error("Profile image must be under 1MB")
+      event.target.value = ""
+      return
+    }
+
+    const reader = new FileReader()
+    reader.onload = () => {
+      if (typeof reader.result === "string") {
+        setForm((currentForm) => ({ ...currentForm, avatar_url: reader.result as string }))
+      }
+    }
+    reader.onerror = () => toast.error("Failed to read image")
+    reader.readAsDataURL(file)
+  }
+
+  const removeAvatar = () => {
+    setForm((currentForm) => ({ ...currentForm, avatar_url: "" }))
+
+    if (fileInputRef.current) {
+      fileInputRef.current.value = ""
     }
   }
 
@@ -102,13 +148,12 @@ export default function ProfilePage() {
           <div className="lg:col-span-1 space-y-6">
             <Card className="bg-card border-border shadow-sm">
               <CardContent className="pt-8 flex flex-col items-center">
-                <div className="relative group">
-                  <div className="h-24 w-24 rounded-full bg-gradient-to-tr from-primary to-primary/60 flex items-center justify-center text-3xl font-bold text-primary-foreground shadow-lg">
-                    {initials}
-                  </div>
-                  <button className="absolute bottom-0 right-0 p-2 rounded-full bg-background border border-border shadow-md hover:bg-muted transition-colors opacity-0 group-hover:opacity-100 scale-90 group-hover:scale-100 transform transition-all">
-                    <Camera className="h-4 w-4" />
-                  </button>
+                <div className="h-24 w-24 overflow-hidden rounded-full bg-gradient-to-tr from-primary to-primary/60 flex items-center justify-center text-3xl font-bold text-primary-foreground shadow-lg">
+                  {form.avatar_url ? (
+                    <img src={form.avatar_url} alt="" className="h-full w-full object-cover" />
+                  ) : (
+                    initials
+                  )}
                 </div>
                 <h2 className="mt-4 text-xl font-bold">{form.full_name || "Your name"}</h2>
                 <div className="flex items-center gap-1.5 mt-1 px-2.5 py-0.5 rounded-full bg-primary/10 border border-primary/20 text-[10px] font-bold text-primary uppercase tracking-wider">
@@ -124,6 +169,38 @@ export default function ProfilePage() {
                     <Phone className="h-4 w-4 shrink-0" />
                     <span>{form.phone || "No phone number"}</span>
                   </div>
+                </div>
+                <div className="mt-6 flex w-full flex-col gap-2 border-t border-border pt-6">
+                  <input
+                    ref={fileInputRef}
+                    type="file"
+                    accept="image/png,image/jpeg,image/webp,image/gif"
+                    className="sr-only"
+                    onChange={handleAvatarChange}
+                    disabled={isLoading}
+                  />
+                  <Button
+                    type="button"
+                    variant="outline"
+                    className="w-full gap-2 border-border h-11 rounded-xl"
+                    onClick={() => fileInputRef.current?.click()}
+                    disabled={isLoading}
+                  >
+                    <Camera className="h-4 w-4" />
+                    Choose Profile Image
+                  </Button>
+                  {form.avatar_url && (
+                    <Button
+                      type="button"
+                      variant="destructive"
+                      className="w-full gap-2 h-11 rounded-xl"
+                      onClick={removeAvatar}
+                      disabled={isLoading}
+                    >
+                      <Trash2 className="h-4 w-4" />
+                      Remove Image
+                    </Button>
+                  )}
                 </div>
               </CardContent>
             </Card>

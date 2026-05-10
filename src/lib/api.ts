@@ -8,6 +8,7 @@ export type ProfilePayload = {
   full_name: string
   phone?: string
   bio?: string
+  avatar_url?: string
 }
 
 export type CreateUserPayload = {
@@ -178,7 +179,7 @@ api.interceptors.request.use((config) => {
 export const authApi = {
   login: (credentials: { email: string; password: string }) => api.post('/api/auth/login', credentials).then(res => res.data),
   bootstrap: (user: { email: string; password: string; full_name: string }) => api.post('/api/auth/bootstrap', user).then(res => res.data),
-  changePassword: (password: string) => api.post('/api/auth/change-password', { password }).then(res => res.data),
+  changePassword: (password: string, currentPassword: string) => api.post('/api/auth/change-password', { password, currentPassword }).then(res => res.data),
   setSession: (token: string) => {
     window.localStorage.setItem('primozen_token', token)
   },
@@ -228,6 +229,7 @@ export const userApi = {
   getUsers: () => api.get('/api/users').then(res => res.data),
   createUser: (user: CreateUserPayload) => api.post('/api/users', user).then(res => res.data),
   updateUser: (id: string, updates: UpdateUserPayload) => api.patch(`/api/users/${id}`, updates).then(res => res.data),
+  deleteUser: (id: string) => api.delete(`/api/users/${id}`).then(res => res.data),
 }
 
 export default api

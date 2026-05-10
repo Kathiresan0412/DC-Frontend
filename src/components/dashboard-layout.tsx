@@ -20,20 +20,13 @@ import { cn } from "@/lib/utils"
 import { Button } from "@/components/ui/button"
 import { ThemeToggle } from "@/components/theme-toggle"
 import { Sheet, SheetContent, SheetTrigger } from "@/components/ui/sheet"
-import {
-  DropdownMenu,
-  DropdownMenuContent,
-  DropdownMenuItem,
-  DropdownMenuLabel,
-  DropdownMenuSeparator,
-  DropdownMenuTrigger,
-} from "@/components/ui/dropdown-menu"
 import { authApi, userApi } from "@/lib/api"
 
 type LayoutProfile = {
   email: string
   full_name: string
   role: "admin" | "manager" | "employee"
+  avatar_url?: string
 }
 
 interface SidebarItemProps {
@@ -131,6 +124,17 @@ export default function DashboardLayout({
       })
   }, [router])
 
+  React.useEffect(() => {
+    const handleProfileUpdated = (event: Event) => {
+      const updatedProfile = (event as CustomEvent<LayoutProfile>).detail
+      setProfile(updatedProfile)
+    }
+
+    window.addEventListener("primozen:profile-updated", handleProfileUpdated)
+
+    return () => window.removeEventListener("primozen:profile-updated", handleProfileUpdated)
+  }, [])
+
   const menuItems = [
     { href: "/dashboard", icon: LayoutDashboard, label: "Overview" },
     { href: "/dashboard/customers", icon: Users, label: "Customers" },
@@ -138,6 +142,7 @@ export default function DashboardLayout({
     { href: "/dashboard/invoices", icon: FileText, label: "Invoices" },
     { href: "/dashboard/payments", icon: Receipt, label: "Payments" },
     ...(profile?.role === "admin" ? [{ href: "/dashboard/users", icon: Users, label: "Users" }] : []),
+    { href: "/dashboard/profile", icon: UserCircle, label: "Profile" },
     { href: "/dashboard/settings", icon: Settings, label: "Settings" },
   ]
 
@@ -190,35 +195,20 @@ export default function DashboardLayout({
               <span className="absolute top-2 right-2 w-2 h-2 bg-primary rounded-full border-2 border-background"></span>
             </Button>
             
-            <DropdownMenu>
-              <DropdownMenuTrigger className="inline-flex shrink-0 items-center justify-center rounded-lg border border-transparent bg-clip-padding text-sm font-medium whitespace-nowrap transition-all outline-none select-none focus-visible:border-ring focus-visible:ring-3 focus-visible:ring-ring/50 active:not-aria-[haspopup]:translate-y-px disabled:pointer-events-none disabled:opacity-50 aria-invalid:border-destructive aria-invalid:ring-3 aria-invalid:ring-destructive/20 dark:aria-invalid:border-destructive/50 dark:aria-invalid:ring-destructive/40 [&_svg]:pointer-events-none [&_svg]:shrink-0 [&_svg:not([class*='size-'])]:size-4 h-8 gap-1.5 px-2.5 has-data-[icon=inline-end]:pr-2 has-data-[icon=inline-start]:pl-2 p-0 h-10 w-10 rounded-full">
-                   <div className="h-10 w-10 rounded-full bg-gradient-to-tr from-primary to-primary/60 border-2 border-border flex items-center justify-center font-bold text-sm text-primary-foreground shadow-sm">
-                    {initials}
-                  </div>
-              </DropdownMenuTrigger>
-              <DropdownMenuContent className="w-56 bg-card border-border" align="end">
-                <DropdownMenuLabel className="font-normal">
-                  <div className="flex flex-col space-y-1">
-                    <p className="text-sm font-medium leading-none">{profile?.full_name || "Profile"}</p>
-                    <p className="text-xs leading-none text-muted-foreground">{profile?.email || "Signed in user"}</p>
-                  </div>
-                </DropdownMenuLabel>
-                <DropdownMenuSeparator className="bg-border" />
-                <DropdownMenuItem className="cursor-pointer focus:bg-accent" onClick={() => router.push('/dashboard/profile')}>
-                  <UserCircle className="mr-2 h-4 w-4" />
-                  <span>Profile</span>
-                </DropdownMenuItem>
-                <DropdownMenuItem className="cursor-pointer focus:bg-accent" onClick={() => router.push('/dashboard/settings')}>
-                  <Settings className="mr-2 h-4 w-4" />
-                  <span>Settings</span>
-                </DropdownMenuItem>
-                <DropdownMenuSeparator className="bg-border" />
-                <DropdownMenuItem className="cursor-pointer text-destructive focus:bg-destructive/10 focus:text-destructive" onClick={handleLogout}>
-                  <LogOut className="mr-2 h-4 w-4" />
-                  <span>Log out</span>
-                </DropdownMenuItem>
-              </DropdownMenuContent>
-            </DropdownMenu>
+            <Link
+              href="/dashboard/profile"
+              aria-label="Open profile"
+              title={profile?.full_name ? `Open ${profile.full_name}'s profile` : "Open profile"}
+              className="inline-flex h-10 w-10 shrink-0 items-center justify-center rounded-full outline-none transition-transform hover:scale-105 focus-visible:border-ring focus-visible:ring-3 focus-visible:ring-ring/50 active:scale-95"
+            >
+              <div className="h-10 w-10 overflow-hidden rounded-full bg-gradient-to-tr from-primary to-primary/60 border-2 border-border flex items-center justify-center font-bold text-sm text-primary-foreground shadow-sm">
+                {profile?.avatar_url ? (
+                  <img src={profile.avatar_url} alt="" className="h-full w-full object-cover" />
+                ) : (
+                  initials
+                )}
+              </div>
+            </Link>
           </div>
         </header>
 
