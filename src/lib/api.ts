@@ -25,6 +25,25 @@ export type UpdateUserPayload = Partial<{
 
 export type InventoryItemPayload = Record<string, unknown>
 
+export type CustomerStatus = 'Active' | 'Due' | 'New lead'
+
+export type Customer = {
+  id: string
+  name: string
+  email: string
+  phone: string
+  address: string
+  business: string
+  plan: string
+  status: CustomerStatus
+  balance: number
+  lastService: string
+  created_at?: string
+  updated_at?: string
+}
+
+export type CustomerPayload = Omit<Customer, 'id' | 'created_at' | 'updated_at'>
+
 const api = axios.create({
   baseURL: process.env.NEXT_PUBLIC_API_URL || 'http://localhost:5001',
 })
@@ -72,6 +91,13 @@ export const inventoryApi = {
   addItem: (item: InventoryItemPayload) => api.post('/api/items', item).then(res => res.data),
   updateItem: (id: string, updates: InventoryItemPayload) => api.put(`/api/items/${id}`, updates).then(res => res.data),
   deleteItem: (id: string) => api.delete(`/api/items/${id}`).then(res => res.data),
+}
+
+export const customerApi = {
+  getCustomers: (): Promise<Customer[]> => api.get('/api/customers').then(res => res.data),
+  createCustomer: (customer: CustomerPayload): Promise<Customer> => api.post('/api/customers', customer).then(res => res.data),
+  updateCustomer: (id: string, updates: Partial<CustomerPayload>): Promise<Customer> => api.put(`/api/customers/${id}`, updates).then(res => res.data),
+  deleteCustomer: (id: string) => api.delete(`/api/customers/${id}`).then(res => res.data),
 }
 
 export const userApi = {

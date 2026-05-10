@@ -2,23 +2,256 @@
 
 import * as React from "react"
 import DashboardLayout from "@/components/dashboard-layout"
-import { customers, formatCurrency } from "@/lib/business-data"
+import { formatCurrency } from "@/lib/business-data"
+import { customerApi, getApiErrorMessage, type Customer, type CustomerPayload, type CustomerStatus } from "@/lib/api"
 import { Button } from "@/components/ui/button"
 import { Input } from "@/components/ui/input"
+import { Label } from "@/components/ui/label"
+import {
+  Dialog,
+  DialogContent,
+  DialogDescription,
+  DialogFooter,
+  DialogHeader,
+  DialogTitle,
+  DialogTrigger,
+} from "@/components/ui/dialog"
+import {
+  DropdownMenu,
+  DropdownMenuContent,
+  DropdownMenuItem,
+  DropdownMenuTrigger,
+} from "@/components/ui/dropdown-menu"
 import { cn } from "@/lib/utils"
-import { Mail, MapPin, Phone, Plus, Search } from "lucide-react"
+import { Edit2, Loader2, Mail, MapPin, MoreVertical, Phone, Plus, Search, Trash2 } from "lucide-react"
+import { toast } from "sonner"
 
-const statusClasses: Record<string, string> = {
+const customerStatuses: CustomerStatus[] = ["Active", "Due", "New lead"]
+
+const emptyCustomer: CustomerPayload = {
+  name: "",
+  email: "",
+  phone: "",
+  address: "",
+  business: "Frozen Solution",
+  plan: "",
+  status: "Active",
+  balance: 0,
+  lastService: "",
+}
+
+const statusClasses: Record<CustomerStatus, string> = {
   Active: "bg-emerald-500/10 text-emerald-700 dark:text-emerald-300",
   Due: "bg-amber-500/10 text-amber-700 dark:text-amber-300",
   "New lead": "bg-sky-500/10 text-sky-700 dark:text-sky-300",
 }
 
+function CustomerFormDialog({
+  customer,
+  trigger,
+  open: controlledOpen,
+  onOpenChange,
+  onSave,
+}: {
+  customer?: Customer
+  trigger?: React.ReactNode
+  open?: boolean
+  onOpenChange?: (open: boolean) => void
+  onSave: (payload: CustomerPayload, id?: string) => Promise<void>
+}) {
+  const [internalOpen, setInternalOpen] = React.useState(false)
+  const [isSaving, setIsSaving] = React.useState(false)
+  const [form, setForm] = React.useState<CustomerPayload>(emptyCustomer)
+  const open = controlledOpen ?? internalOpen
+
+  const setOpen = React.useCallback((nextOpen: boolean) => {
+    onOpenChange?.(nextOpen)
+    if (controlledOpen === undefined) {
+      setInternalOpen(nextOpen)
+    }
+  }, [controlledOpen, onOpenChange])
+
+  React.useEffect(() => {
+    if (!open) return
+
+    setForm(customer ? {
+      name: customer.name,
+      email: customer.email,
+      phone: customer.phone,
+      address: customer.address,
+      business: customer.business,
+      plan: customer.plan,
+      status: customer.status,
+      balance: customer.balance,
+      lastService: customer.lastService,
+    } : emptyCustomer)
+  }, [customer, open])
+
+  const updateField = <Key extends keyof CustomerPayload>(field: Key, value: CustomerPayload[Key]) => {
+    setForm((current) => ({ ...current, [field]: value }))
+  }
+
+  const handleSubmit = async (event: React.FormEvent<HTMLFormElement>) => {
+    event.preventDefault()
+    setIsSaving(true)
+
+    try {
+      await onSave(form, customer?.id)
+      setOpen(false)
+    } finally {
+      setIsSaving(false)
+    }
+  }
+
+  return (
+    <Dialog open={open} onOpenChange={setOpen}>
+      {trigger && <DialogTrigger asChild>{trigger}</DialogTrigger>}
+      <DialogContent className="sm:max-w-2xl">
+        <DialogHeader>
+          <DialogTitle>{customer ? "Edit customer" : "Add customer"}</DialogTitle>
+          <DialogDescription>
+            {customer ? "Update customer contact, service, and balance details." : "Create a customer record for scheduling, billing, and service history."}
+          </DialogDescription>
+        </DialogHeader>
+        <form onSubmit={handleSubmit} className="grid gap-4">
+          <div className="grid gap-4 sm:grid-cols-2">
+            <div className="grid gap-2">
+              <Label htmlFor="customer-name">Name</Label>
+              <Input id="customer-name" value={form.name} onChange={(event) => updateField("name", event.target.value)} required />
+            </div>
+            <div className="grid gap-2">
+              <Label htmlFor="customer-email">Email</Label>
+              <Input id="customer-email" type="email" value={form.email} onChange={(event) => updateField("email", event.target.value)} required />
+            </div>
+            <div className="grid gap-2">
+              <Label htmlFor="customer-phone">Phone</Label>
+              <Input id="customer-phone" value={form.phone} onChange={(event) => updateField("phone", event.target.value)} required />
+            </div>
+            <div className="grid gap-2">
+              <Label htmlFor="customer-business">Business</Label>
+              <select
+                id="customer-business"
+                value={form.business}
+                onChange={(event) => updateField("business", event.target.value)}
+                className="h-10 rounded-lg border border-input bg-background px-3 text-sm outline-none focus-visible:border-ring focus-visible:ring-3 focus-visible:ring-ring/50"
+              >
+                <option value="Frozen Solution">Frozen Solution</option>
+                <option value="Primecut Services">Primecut Services</option>
+              </select>
+            </div>
+          </div>
+
+          <div className="grid gap-2">
+            <Label htmlFor="customer-address">Address</Label>
+            <Input id="customer-address" value={form.address} onChange={(event) => updateField("address", event.target.value)} required />
+          </div>
+
+          <div className="grid gap-4 sm:grid-cols-3">
+            <div className="grid gap-2">
+              <Label htmlFor="customer-plan">Plan</Label>
+              <Input id="customer-plan" value={form.plan} onChange={(event) => updateField("plan", event.target.value)} required />
+            </div>
+            <div className="grid gap-2">
+              <Label htmlFor="customer-status">Status</Label>
+              <select
+                id="customer-status"
+                value={form.status}
+                onChange={(event) => updateField("status", event.target.value as CustomerStatus)}
+                className="h-10 rounded-lg border border-input bg-background px-3 text-sm outline-none focus-visible:border-ring focus-visible:ring-3 focus-visible:ring-ring/50"
+              >
+                {customerStatuses.map((status) => (
+                  <option key={status} value={status}>{status}</option>
+                ))}
+              </select>
+            </div>
+            <div className="grid gap-2">
+              <Label htmlFor="customer-balance">Balance</Label>
+              <Input id="customer-balance" type="number" min="0" step="0.01" value={form.balance} onChange={(event) => updateField("balance", Number(event.target.value))} required />
+            </div>
+          </div>
+
+          <div className="grid gap-2">
+            <Label htmlFor="customer-last-service">Last service</Label>
+            <Input id="customer-last-service" value={form.lastService} onChange={(event) => updateField("lastService", event.target.value)} placeholder="May 10, 2026" required />
+          </div>
+
+          <DialogFooter>
+            <Button type="submit" disabled={isSaving} className="gap-2">
+              {isSaving && <Loader2 className="h-4 w-4 animate-spin" />}
+              {customer ? "Save changes" : "Create customer"}
+            </Button>
+          </DialogFooter>
+        </form>
+      </DialogContent>
+    </Dialog>
+  )
+}
+
 export default function CustomersPage() {
   const [query, setQuery] = React.useState("")
-  const filteredCustomers = customers.filter((customer) =>
-    `${customer.name} ${customer.email} ${customer.business} ${customer.plan}`.toLowerCase().includes(query.toLowerCase())
-  )
+  const [customers, setCustomers] = React.useState<Customer[]>([])
+  const [isLoading, setIsLoading] = React.useState(true)
+  const [deletingId, setDeletingId] = React.useState<string | null>(null)
+  const [editingCustomer, setEditingCustomer] = React.useState<Customer | null>(null)
+
+  const loadCustomers = React.useCallback(async () => {
+    setIsLoading(true)
+
+    try {
+      setCustomers(await customerApi.getCustomers())
+    } catch (error) {
+      toast.error(getApiErrorMessage(error, "Failed to load customers"))
+    } finally {
+      setIsLoading(false)
+    }
+  }, [])
+
+  React.useEffect(() => {
+    loadCustomers()
+  }, [loadCustomers])
+
+  const handleSave = async (payload: CustomerPayload, id?: string) => {
+    try {
+      if (id) {
+        const updatedCustomer = await customerApi.updateCustomer(id, payload)
+        setCustomers((current) => current.map((customer) => customer.id === id ? updatedCustomer : customer))
+        toast.success("Customer updated")
+        return
+      }
+
+      const createdCustomer = await customerApi.createCustomer(payload)
+      setCustomers((current) => [createdCustomer, ...current])
+      toast.success("Customer created")
+    } catch (error) {
+      toast.error(getApiErrorMessage(error, "Failed to save customer"))
+      throw error
+    }
+  }
+
+  const handleDelete = async (customer: Customer) => {
+    if (!window.confirm(`Delete ${customer.name}?`)) return
+
+    setDeletingId(customer.id)
+
+    try {
+      await customerApi.deleteCustomer(customer.id)
+      setCustomers((current) => current.filter((item) => item.id !== customer.id))
+      toast.success("Customer deleted")
+    } catch (error) {
+      toast.error(getApiErrorMessage(error, "Failed to delete customer"))
+    } finally {
+      setDeletingId(null)
+    }
+  }
+
+  const filteredCustomers = React.useMemo(() => {
+    const normalizedQuery = query.toLowerCase().trim()
+    if (!normalizedQuery) return customers
+
+    return customers.filter((customer) =>
+      `${customer.name} ${customer.email} ${customer.business} ${customer.plan} ${customer.phone} ${customer.address}`.toLowerCase().includes(normalizedQuery)
+    )
+  }, [customers, query])
 
   return (
     <DashboardLayout>
@@ -28,16 +261,43 @@ export default function CustomersPage() {
             <h1 className="text-2xl font-bold tracking-tight md:text-3xl">Customers</h1>
             <p className="mt-1 text-sm text-muted-foreground">Store customer details, addresses, service plans, and balance records.</p>
           </div>
-          <Button className="gap-2">
-            <Plus className="h-4 w-4" />
-            Add customer
-          </Button>
+          <CustomerFormDialog
+            onSave={handleSave}
+            trigger={
+              <Button className="gap-2">
+                <Plus className="h-4 w-4" />
+                Add customer
+              </Button>
+            }
+          />
         </div>
+
+        <CustomerFormDialog
+          customer={editingCustomer || undefined}
+          open={Boolean(editingCustomer)}
+          onOpenChange={(nextOpen) => {
+            if (!nextOpen) setEditingCustomer(null)
+          }}
+          onSave={handleSave}
+        />
 
         <div className="relative max-w-xl">
           <Search className="absolute left-3 top-1/2 h-4 w-4 -translate-y-1/2 text-muted-foreground" />
           <Input value={query} onChange={(event) => setQuery(event.target.value)} placeholder="Search customer, business, email, or service..." className="h-10 pl-10" />
         </div>
+
+        {isLoading && (
+          <div className="rounded-lg border border-border bg-card p-10 text-center text-sm text-muted-foreground">
+            <Loader2 className="mx-auto mb-3 h-5 w-5 animate-spin" />
+            Loading customers...
+          </div>
+        )}
+
+        {!isLoading && filteredCustomers.length === 0 && (
+          <div className="rounded-lg border border-border bg-card p-10 text-center text-sm text-muted-foreground">
+            No customers found.
+          </div>
+        )}
 
         <div className="grid gap-4 lg:grid-cols-2">
           {filteredCustomers.map((customer) => (
@@ -50,9 +310,31 @@ export default function CustomersPage() {
                   </div>
                   <p className="mt-1 text-sm text-muted-foreground">{customer.id} • {customer.business}</p>
                 </div>
-                <div className="text-left sm:text-right">
-                  <p className="text-xs text-muted-foreground">Balance</p>
-                  <p className={cn("text-xl font-bold", customer.balance > 0 ? "text-amber-700 dark:text-amber-300" : "text-emerald-700 dark:text-emerald-300")}>{formatCurrency(customer.balance)}</p>
+                <div className="flex items-start justify-between gap-3 sm:justify-end">
+                  <div className="text-left sm:text-right">
+                    <p className="text-xs text-muted-foreground">Balance</p>
+                    <p className={cn("text-xl font-bold", customer.balance > 0 ? "text-amber-700 dark:text-amber-300" : "text-emerald-700 dark:text-emerald-300")}>{formatCurrency(customer.balance)}</p>
+                  </div>
+                  <DropdownMenu>
+                    <DropdownMenuTrigger>
+                      <Button variant="ghost" size="icon" className="text-muted-foreground hover:text-foreground">
+                        <MoreVertical className="h-4 w-4" />
+                      </Button>
+                    </DropdownMenuTrigger>
+                    <DropdownMenuContent align="end" className="bg-card border-border">
+                      <DropdownMenuItem onClick={() => setEditingCustomer(customer)} className="gap-2 cursor-pointer">
+                        <Edit2 className="h-4 w-4" /> Edit
+                      </DropdownMenuItem>
+                      <DropdownMenuItem
+                        onClick={() => handleDelete(customer)}
+                        disabled={deletingId === customer.id}
+                        className="gap-2 cursor-pointer text-destructive"
+                      >
+                        {deletingId === customer.id ? <Loader2 className="h-4 w-4 animate-spin" /> : <Trash2 className="h-4 w-4" />}
+                        Delete
+                      </DropdownMenuItem>
+                    </DropdownMenuContent>
+                  </DropdownMenu>
                 </div>
               </div>
 

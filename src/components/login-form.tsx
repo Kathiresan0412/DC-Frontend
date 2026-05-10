@@ -135,6 +135,7 @@ export function LoginForm({ className, ...props }: UserAuthFormProps) {
           </div>
 
           <Button
+            type="submit"
             disabled={isLoading}
             className="h-11 rounded-xl bg-primary text-primary-foreground font-medium shadow-lg shadow-primary/25 hover:bg-primary/90 transition-all duration-300 mt-2"
           >
