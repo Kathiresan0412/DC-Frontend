@@ -24,7 +24,7 @@ import {
   DropdownMenuTrigger,
 } from "@/components/ui/dropdown-menu"
 import { cn } from "@/lib/utils"
-import { Check, Edit2, Loader2, Mail, MoreVertical, Phone, Plus, Search, Trash2 } from "lucide-react"
+import { Camera, Check, Edit2, ImageIcon, Loader2, Mail, MoreVertical, Phone, Plus, Search, Trash2, X } from "lucide-react"
 import { toast } from "sonner"
 
 const serviceStatuses: ServiceStatus[] = ["Active", "Inactive"]
@@ -43,7 +43,13 @@ const emptyService: ServicePayload = {
   contactPhone: "",
   secondaryPhone: "",
   email: "",
+  imageUrl: "",
   source: "Manual entry",
+}
+
+const serviceImageOutput = {
+  width: 1200,
+  height: 675,
 }
 
 const businessAccent: Record<string, string> = {
@@ -61,6 +67,34 @@ const normalizeEmail = (value: string) => value
   .replace(/\s+dot\s+/g, ".")
   .replace(/\s+/g, "")
 
+const cropServiceImage = (source: string, zoom: number, offsetX: number, offsetY: number) => new Promise<string>((resolve, reject) => {
+  const image = new window.Image()
+  image.onload = () => {
+    const canvas = document.createElement("canvas")
+    canvas.width = serviceImageOutput.width
+    canvas.height = serviceImageOutput.height
+
+    const context = canvas.getContext("2d")
+    if (!context) {
+      reject(new Error("Image crop is not available"))
+      return
+    }
+
+    const scale = Math.max(canvas.width / image.naturalWidth, canvas.height / image.naturalHeight) * zoom
+    const width = image.naturalWidth * scale
+    const height = image.naturalHeight * scale
+    const x = (canvas.width - width) / 2 + offsetX
+    const y = (canvas.height - height) / 2 + offsetY
+
+    context.fillStyle = "#f4f4f5"
+    context.fillRect(0, 0, canvas.width, canvas.height)
+    context.drawImage(image, x, y, width, height)
+    resolve(canvas.toDataURL("image/jpeg", 0.82))
+  }
+  image.onerror = () => reject(new Error("Failed to load image"))
+  image.src = source
+})
+
 const serviceVoiceAliases = {
   name: ["name", "service"],
   business: ["business", "company"],
@@ -75,6 +109,7 @@ const serviceVoiceAliases = {
   contactPhone: ["phone", "contact phone", "main phone"],
   secondaryPhone: ["second phone", "secondary phone"],
   email: ["email", "e mail"],
+  imageUrl: ["image", "photo"],
   source: ["source"],
 } satisfies Record<keyof ServicePayload, string[]>
 
@@ -144,6 +179,11 @@ function ServiceFormDialog({
   const [form, setForm] = React.useState<ServicePayload>(emptyService)
   const [includesText, setIncludesText] = React.useState("")
   const [trustText, setTrustText] = React.useState("")
+  const [cropSource, setCropSource] = React.useState("")
+  const [cropZoom, setCropZoom] = React.useState(1)
+  const [cropOffsetX, setCropOffsetX] = React.useState(0)
+  const [cropOffsetY, setCropOffsetY] = React.useState(0)
+  const fileInputRef = React.useRef<HTMLInputElement>(null)
   const open = controlledOpen ?? internalOpen
 
   const setOpen = React.useCallback((nextOpen: boolean) => {
@@ -170,12 +210,18 @@ function ServiceFormDialog({
       contactPhone: service.contactPhone,
       secondaryPhone: service.secondaryPhone,
       email: service.email,
+      imageUrl: service.imageUrl || "",
       source: service.source,
     } : emptyService
 
     setForm(nextForm)
     setIncludesText(joinLines(nextForm.includes))
     setTrustText(joinLines(nextForm.trustPoints))
+    setCropSource("")
+    setCropZoom(1)
+    setCropOffsetX(0)
+    setCropOffsetY(0)
+    if (fileInputRef.current) fileInputRef.current.value = ""
   }, [open, service])
 
   const updateField = <Key extends keyof ServicePayload>(field: Key, value: ServicePayload[Key]) => {
@@ -198,6 +244,59 @@ function ServiceFormDialog({
     if (updates.includes) setIncludesText(joinLines(updates.includes))
     if (updates.trustPoints) setTrustText(joinLines(updates.trustPoints))
     toast.success("Service form filled from voice")
+  }
+
+  const handleImageChange = (event: React.ChangeEvent<HTMLInputElement>) => {
+    const file = event.target.files?.[0]
+    if (!file) return
+
+    if (!file.type.startsWith("image/")) {
+      toast.error("Please choose an image file")
+      event.target.value = ""
+      return
+    }
+
+    if (file.size > 5_000_000) {
+      toast.error("Service image must be under 5MB before cropping")
+      event.target.value = ""
+      return
+    }
+
+    const reader = new FileReader()
+    reader.onload = () => {
+      if (typeof reader.result === "string") {
+        setCropSource(reader.result)
+        setCropZoom(1)
+        setCropOffsetX(0)
+        setCropOffsetY(0)
+      }
+    }
+    reader.onerror = () => toast.error("Failed to read image")
+    reader.readAsDataURL(file)
+  }
+
+  const applyCrop = async () => {
+    if (!cropSource) return
+
+    try {
+      const croppedImage = await cropServiceImage(cropSource, cropZoom, cropOffsetX, cropOffsetY)
+      if (croppedImage.length > 1_400_000) {
+        toast.error("Cropped service image is too large")
+        return
+      }
+
+      updateField("imageUrl", croppedImage)
+      setCropSource("")
+      if (fileInputRef.current) fileInputRef.current.value = ""
+    } catch (error) {
+      toast.error(error instanceof Error ? error.message : "Failed to crop image")
+    }
+  }
+
+  const removeImage = () => {
+    updateField("imageUrl", "")
+    setCropSource("")
+    if (fileInputRef.current) fileInputRef.current.value = ""
   }
 
   const handleSubmit = async (event: React.FormEvent<HTMLFormElement>) => {
@@ -232,6 +331,68 @@ function ServiceFormDialog({
           </div>
         </DialogHeader>
         <form onSubmit={handleSubmit} className="grid max-h-[75vh] gap-4 overflow-y-auto pr-1">
+          <div className="grid gap-3 rounded-lg border border-border bg-muted/30 p-3 sm:grid-cols-[220px_1fr]">
+            <div className="relative aspect-video overflow-hidden rounded-md border border-border bg-background">
+              {cropSource ? (
+                // eslint-disable-next-line @next/next/no-img-element
+                <img
+                  src={cropSource}
+                  alt=""
+                  className="absolute left-1/2 top-1/2 max-h-none max-w-none"
+                  style={{
+                    width: `${100 * cropZoom}%`,
+                    transform: `translate(-50%, -50%) translate(${cropOffsetX / 4}px, ${cropOffsetY / 4}px)`,
+                  }}
+                />
+              ) : form.imageUrl ? (
+                // eslint-disable-next-line @next/next/no-img-element
+                <img src={form.imageUrl} alt="" className="h-full w-full object-cover" />
+              ) : (
+                <div className="flex h-full flex-col items-center justify-center gap-2 text-muted-foreground">
+                  <ImageIcon className="h-6 w-6" />
+                  <span className="text-xs font-medium">Service image</span>
+                </div>
+              )}
+            </div>
+            <div className="grid gap-3">
+              <div className="flex flex-wrap gap-2">
+                <input
+                  ref={fileInputRef}
+                  type="file"
+                  accept="image/png,image/jpeg,image/webp,image/gif"
+                  className="sr-only"
+                  onChange={handleImageChange}
+                  disabled={isSaving}
+                />
+                <Button type="button" variant="outline" className="gap-2" onClick={() => fileInputRef.current?.click()} disabled={isSaving}>
+                  <Camera className="h-4 w-4" />
+                  Choose image
+                </Button>
+                {cropSource && (
+                  <Button type="button" className="gap-2" onClick={applyCrop} disabled={isSaving}>
+                    <Check className="h-4 w-4" />
+                    Apply crop
+                  </Button>
+                )}
+                {(form.imageUrl || cropSource) && (
+                  <Button type="button" variant="ghost" size="icon" onClick={removeImage} disabled={isSaving} aria-label="Remove service image">
+                    <X className="h-4 w-4" />
+                  </Button>
+                )}
+              </div>
+              {cropSource && (
+                <div className="grid gap-2">
+                  <Label htmlFor="service-image-zoom">Zoom</Label>
+                  <Input id="service-image-zoom" type="range" min="1" max="2.5" step="0.05" value={cropZoom} onChange={(event) => setCropZoom(Number(event.target.value))} />
+                  <Label htmlFor="service-image-x">Horizontal position</Label>
+                  <Input id="service-image-x" type="range" min="-240" max="240" step="4" value={cropOffsetX} onChange={(event) => setCropOffsetX(Number(event.target.value))} />
+                  <Label htmlFor="service-image-y">Vertical position</Label>
+                  <Input id="service-image-y" type="range" min="-180" max="180" step="4" value={cropOffsetY} onChange={(event) => setCropOffsetY(Number(event.target.value))} />
+                </div>
+              )}
+            </div>
+          </div>
+
           <div className="grid gap-4 sm:grid-cols-2">
             <div className="grid gap-2">
               <Label htmlFor="service-name">Service name</Label>
@@ -487,6 +648,12 @@ export default function ServicesPage() {
               <div className="mt-5 grid gap-4">
                 {businessServices.map((service) => (
                   <div key={service.id} className="rounded-lg border border-border p-4">
+                    {service.imageUrl && (
+                      <div className="mb-4 aspect-video overflow-hidden rounded-md border border-border bg-muted">
+                        {/* eslint-disable-next-line @next/next/no-img-element */}
+                        <img src={service.imageUrl} alt="" className="h-full w-full object-cover" />
+                      </div>
+                    )}
                     <div className="flex items-start justify-between gap-3">
                       <div>
                         <div className="flex flex-wrap items-center gap-2">

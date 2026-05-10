@@ -136,12 +136,16 @@ export default function DashboardLayout({
     return () => window.removeEventListener("primozen:profile-updated", handleProfileUpdated)
   }, [])
 
+  const canManageFinancials = profile?.role === "admin" || profile?.role === "manager"
+
   const menuItems = [
     { href: "/dashboard", icon: LayoutDashboard, label: "Overview" },
     { href: "/dashboard/customers", icon: Users, label: "Customers" },
     { href: "/dashboard/services", icon: Handshake, label: "Services" },
-    { href: "/dashboard/invoices", icon: FileText, label: "Invoices" },
-    { href: "/dashboard/payments", icon: Receipt, label: "Payments" },
+    ...(canManageFinancials ? [
+      { href: "/dashboard/invoices", icon: FileText, label: "Invoices" },
+      { href: "/dashboard/payments", icon: Receipt, label: "Payments" },
+    ] : []),
     { href: "/dashboard/activity", icon: Activity, label: "Activity Log" },
     ...(profile?.role === "admin" ? [{ href: "/dashboard/users", icon: Users, label: "Users" }] : []),
     { href: "/dashboard/profile", icon: UserCircle, label: "Profile" },

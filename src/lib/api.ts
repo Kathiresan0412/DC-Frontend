@@ -72,6 +72,7 @@ export type ServiceOffering = {
   contactPhone: string
   secondaryPhone: string
   email: string
+  imageUrl: string
   source: string
   created_at?: string
   updated_at?: string
@@ -90,10 +91,13 @@ export type EmailLog = {
 }
 
 export type ProofPayment = {
+  payment_id?: string
+  method?: string
   totalAmount: number
   paidAmount: number
   receivableAmount: number
   generated_at: string
+  notes?: string
 }
 
 export type Invoice = {
@@ -115,6 +119,7 @@ export type Invoice = {
   feedback: string
   confirmed_at?: string
   proofPayment?: ProofPayment
+  proofPayments?: ProofPayment[]
   emails: EmailLog[]
   created_at?: string
   updated_at?: string

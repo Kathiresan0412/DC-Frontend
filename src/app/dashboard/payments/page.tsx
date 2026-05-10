@@ -1,6 +1,7 @@
 "use client"
 
 import * as React from "react"
+import { useRouter } from "next/navigation"
 import { CreditCard, Download, Loader2, Plus, ReceiptText, Search } from "lucide-react"
 import { toast } from "sonner"
 
@@ -9,13 +10,14 @@ import { Button } from "@/components/ui/button"
 import { Input } from "@/components/ui/input"
 import { Label } from "@/components/ui/label"
 import { formatCurrency } from "@/lib/business-data"
-import { getApiErrorMessage, invoiceApi, paymentApi, type Invoice, type Payment } from "@/lib/api"
+import { getApiErrorMessage, invoiceApi, paymentApi, userApi, type Invoice, type Payment } from "@/lib/api"
 
 const paymentMethods = ["E-transfer", "Credit card", "Cash", "Cheque", "Bank transfer"]
 
 const todayInputValue = () => new Date().toISOString().slice(0, 10)
 
 export default function PaymentsPage() {
+  const router = useRouter()
   const [query, setQuery] = React.useState("")
   const [invoices, setInvoices] = React.useState<Invoice[]>([])
   const [payments, setPayments] = React.useState<Payment[]>([])
@@ -25,6 +27,8 @@ export default function PaymentsPage() {
   const [paidAt, setPaidAt] = React.useState(todayInputValue())
   const [notes, setNotes] = React.useState("")
   const [isLoading, setIsLoading] = React.useState(true)
+  const [canManageFinancials, setCanManageFinancials] = React.useState(false)
+  const [isCheckingAccess, setIsCheckingAccess] = React.useState(true)
   const [isRecording, setIsRecording] = React.useState(false)
 
   const selectedInvoice = invoices.find((invoice) => invoice.id === selectedInvoiceId || invoice.invoice_id === selectedInvoiceId)
@@ -34,6 +38,8 @@ export default function PaymentsPage() {
   const methodsCount = new Set(payments.map((payment) => payment.method)).size
 
   const loadData = React.useCallback(async () => {
+    if (!canManageFinancials) return
+
     setIsLoading(true)
 
     try {
@@ -49,11 +55,28 @@ export default function PaymentsPage() {
     } finally {
       setIsLoading(false)
     }
-  }, [])
+  }, [canManageFinancials])
 
   React.useEffect(() => {
-    loadData()
-  }, [loadData])
+    userApi.getProfile()
+      .then((profile) => {
+        const hasAccess = profile.role === "admin" || profile.role === "manager"
+        setCanManageFinancials(hasAccess)
+
+        if (!hasAccess) {
+          toast.error("Only admins and managers can access payments")
+          router.replace("/dashboard")
+        }
+      })
+      .catch(() => router.replace("/"))
+      .finally(() => setIsCheckingAccess(false))
+  }, [router])
+
+  React.useEffect(() => {
+    if (canManageFinancials) {
+      loadData()
+    }
+  }, [canManageFinancials, loadData])
 
   React.useEffect(() => {
     if (!selectedInvoice) return
@@ -119,6 +142,11 @@ export default function PaymentsPage() {
 
   return (
     <DashboardLayout>
+      {isCheckingAccess || !canManageFinancials ? (
+        <div className="flex min-h-80 items-center justify-center rounded-lg border border-border bg-card">
+          <Loader2 className="h-6 w-6 animate-spin text-muted-foreground" />
+        </div>
+      ) : (
       <div className="flex flex-col gap-6 md:gap-8">
         <div className="flex flex-col gap-4 sm:flex-row sm:items-end sm:justify-between">
           <div>
@@ -247,6 +275,7 @@ export default function PaymentsPage() {
           </div>
         </section>
       </div>
+      )}
     </DashboardLayout>
   )
 }

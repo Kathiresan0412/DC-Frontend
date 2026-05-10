@@ -116,17 +116,18 @@ export function VoiceInputButton({
   }
 
   return (
-    <Button
-      type="button"
-      variant={isListening ? "destructive" : "outline"}
-      size="sm"
-      disabled={disabled || !isSupported}
-      onClick={handleClick}
-      title={isListening ? "Stop voice input" : "Voice input"}
-      className={cn("gap-2", className)}
-    >
-      {isListening ? <Square className="h-4 w-4" /> : <Mic className="h-4 w-4" />}
-      {isListening ? "Listening" : "Voice fill"}
-    </Button>
+    <></>
+    // <Button
+    //   type="button"
+    //   variant={isListening ? "destructive" : "outline"}
+    //   size="sm"
+    //   disabled={disabled || !isSupported}
+    //   onClick={handleClick}
+    //   title={isListening ? "Stop voice input" : "Voice input"}
+    //   className={cn("gap-2", className)}
+    // >
+    //   {isListening ? <Square className="h-4 w-4" /> : <Mic className="h-4 w-4" />}
+    //   {isListening ? "Listening" : "Voice fill"}
+    // </Button>
   )
 }

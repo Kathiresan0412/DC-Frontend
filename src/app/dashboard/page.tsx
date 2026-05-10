@@ -10,6 +10,7 @@ import {
   invoiceApi,
   paymentApi,
   serviceApi,
+  userApi,
   type Customer,
   type Invoice,
   type Payment,
@@ -102,23 +103,37 @@ export default function DashboardPage() {
   const [invoices, setInvoices] = React.useState<Invoice[]>([])
   const [payments, setPayments] = React.useState<Payment[]>([])
   const [isLoading, setIsLoading] = React.useState(true)
+  const [canManageFinancials, setCanManageFinancials] = React.useState(false)
   const [sendingId, setSendingId] = React.useState<string | null>(null)
 
   const loadDashboard = React.useCallback(async () => {
     setIsLoading(true)
 
     try {
-      const [nextCustomers, nextServices, nextInvoices, nextPayments] = await Promise.all([
+      const currentProfile = await userApi.getProfile()
+      const hasFinancialAccess = currentProfile.role === "admin" || currentProfile.role === "manager"
+      setCanManageFinancials(hasFinancialAccess)
+
+      const [nextCustomers, nextServices] = await Promise.all([
         customerApi.getCustomers(),
         serviceApi.getServices(),
-        invoiceApi.getInvoices(),
-        paymentApi.getPayments(),
       ])
 
       setCustomers(nextCustomers)
       setServices(nextServices)
-      setInvoices(nextInvoices)
-      setPayments(nextPayments)
+
+      if (hasFinancialAccess) {
+        const [nextInvoices, nextPayments] = await Promise.all([
+          invoiceApi.getInvoices(),
+          paymentApi.getPayments(),
+        ])
+
+        setInvoices(nextInvoices)
+        setPayments(nextPayments)
+      } else {
+        setInvoices([])
+        setPayments([])
+      }
     } catch (error) {
       toast.error(getApiErrorMessage(error, "Failed to load dashboard"))
     } finally {
@@ -168,7 +183,7 @@ export default function DashboardPage() {
         secondaryPhone: primaryService?.secondaryPhone || "",
         servicesCount: businessServices.length,
         activeServices,
-        image: businessImages[name] || "/primozen-meta-image.png",
+        image: primaryService?.imageUrl || businessImages[name] || "/primozen-meta-image.png",
         accent: businessAccents[name] || "text-primary bg-primary/10",
       }
     })
@@ -213,10 +228,12 @@ export default function DashboardPage() {
             </p>
           </div>
           <div className="flex flex-wrap gap-2">
-            <Link href="/dashboard/invoices" className="inline-flex h-8 items-center justify-center gap-1.5 rounded-lg bg-primary px-2.5 text-sm font-medium text-primary-foreground transition-all hover:bg-primary/90">
-              <FileText className="h-4 w-4" />
-              New invoice
-            </Link>
+            {canManageFinancials && (
+              <Link href="/dashboard/invoices" className="inline-flex h-8 items-center justify-center gap-1.5 rounded-lg bg-primary px-2.5 text-sm font-medium text-primary-foreground transition-all hover:bg-primary/90">
+                <FileText className="h-4 w-4" />
+                New invoice
+              </Link>
+            )}
             <Link href="/dashboard/activity" className="inline-flex h-8 items-center justify-center gap-1.5 rounded-lg border border-border bg-background px-2.5 text-sm font-medium transition-all hover:bg-muted">
               <Mail className="h-4 w-4" />
               Activity log
@@ -232,9 +249,14 @@ export default function DashboardPage() {
           <>
             <div className="grid gap-4 sm:grid-cols-2 lg:grid-cols-4">
               <StatCard title="Active customers" value={customers.filter((customer) => customer.status === "Active").length} label={`${customers.length} total customers`} icon={Users} className="bg-sky-500/10 text-sky-700" />
-              <StatCard title="Due bills" value={formatCurrency(totalDue)} label={`${overdue.length} overdue invoice${overdue.length === 1 ? "" : "s"} need action`} icon={AlertTriangle} className="bg-amber-500/10 text-amber-700" />
-              <StatCard title="Paid this month" value={formatCurrency(paidThisMonth)} label="Recorded payments this month" icon={DollarSign} className="bg-emerald-500/10 text-emerald-700" />
-              <StatCard title="Next due invoice" value={nextDueInvoice?.invoice.due || "None"} label={nextDueInvoice ? `${nextDueInvoice.invoice.customer} · ${nextDueInvoice.invoice.invoice_id}` : "No upcoming unpaid invoices"} icon={CalendarClock} className="bg-violet-500/10 text-violet-700" />
+              <StatCard title="Active services" value={services.filter((service) => service.status === "Active").length} label={`${services.length} total services`} icon={CheckCircle2} className="bg-emerald-500/10 text-emerald-700" />
+              {canManageFinancials && (
+                <>
+                  <StatCard title="Due bills" value={formatCurrency(totalDue)} label={`${overdue.length} overdue invoice${overdue.length === 1 ? "" : "s"} need action`} icon={AlertTriangle} className="bg-amber-500/10 text-amber-700" />
+                  <StatCard title="Paid this month" value={formatCurrency(paidThisMonth)} label="Recorded payments this month" icon={DollarSign} className="bg-emerald-500/10 text-emerald-700" />
+                  <StatCard title="Next due invoice" value={nextDueInvoice?.invoice.due || "None"} label={nextDueInvoice ? `${nextDueInvoice.invoice.customer} · ${nextDueInvoice.invoice.invoice_id}` : "No upcoming unpaid invoices"} icon={CalendarClock} className="bg-violet-500/10 text-violet-700" />
+                </>
+              )}
             </div>
 
             <div className="grid gap-6 lg:grid-cols-2">
@@ -267,6 +289,7 @@ export default function DashboardPage() {
               )}
             </div>
 
+            {canManageFinancials && (
             <div className="grid gap-6 lg:grid-cols-[1.4fr_1fr]">
               <section className="rounded-lg border border-border bg-card shadow-sm">
                 <div className="border-b border-border p-5">
@@ -317,6 +340,7 @@ export default function DashboardPage() {
                 </div>
               </section>
             </div>
+            )}
           </>
         )}
       </div>

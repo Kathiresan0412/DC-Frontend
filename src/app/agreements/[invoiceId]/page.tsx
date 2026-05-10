@@ -12,6 +12,19 @@ import { Label } from "@/components/ui/label"
 import { formatCurrency } from "@/lib/business-data"
 import { getApiErrorMessage, invoiceApi, type Invoice } from "@/lib/api"
 
+const formatProofDateTime = (value: string) => {
+  const date = new Date(value)
+
+  if (Number.isNaN(date.getTime())) {
+    return value
+  }
+
+  return date.toLocaleString(undefined, {
+    dateStyle: "medium",
+    timeStyle: "short",
+  })
+}
+
 export default function AgreementPage() {
   const params = useParams<{ invoiceId: string }>()
   const invoiceId = params.invoiceId
@@ -44,9 +57,10 @@ export default function AgreementPage() {
     setIsConfirming(true)
 
     try {
-      const result = await invoiceApi.confirmInvoice(invoiceId, { paidAmount, feedback })
-      setInvoice(result.invoice)
-      setPaidAmount(result.invoice.receivable)
+      await invoiceApi.confirmInvoice(invoiceId, { paidAmount, feedback })
+      const nextInvoice = await invoiceApi.getPublicInvoice(invoiceId)
+      setInvoice(nextInvoice)
+      setPaidAmount(nextInvoice.receivable)
       setFeedback("")
       toast.success("Agreement confirmed and payment slip emailed")
     } catch (error) {
@@ -79,7 +93,8 @@ export default function AgreementPage() {
   }
 
   const receivable = Math.max(invoice.amount - invoice.paid, 0)
-  const isConfirmed = Boolean(invoice.confirmed_at || invoice.proofPayment)
+  const proofPayments = invoice.proofPayments?.length ? invoice.proofPayments : (invoice.proofPayment ? [invoice.proofPayment] : [])
+  const isConfirmed = Boolean(invoice.confirmed_at || proofPayments.length)
   const canRecordPayment = receivable > 0
 
   return (
@@ -133,26 +148,38 @@ export default function AgreementPage() {
               </dl>
             </div>
 
-            {isConfirmed && invoice.proofPayment && (
+            {isConfirmed && proofPayments.length > 0 && (
               <div className="rounded-lg border border-emerald-500/30 bg-emerald-500/10 p-4">
                 <h3 className="flex items-center gap-2 font-semibold text-emerald-800 dark:text-emerald-300">
                   <CheckCircle2 className="h-4 w-4" />
-                  Latest payment proof
+                  Payment proof history
                 </h3>
-                <dl className="mt-4 grid gap-3 text-sm sm:grid-cols-3">
-                  <div>
-                    <dt className="text-muted-foreground">Total amount</dt>
-                    <dd className="font-bold">{formatCurrency(invoice.proofPayment.totalAmount)}</dd>
-                  </div>
-                  <div>
-                    <dt className="text-muted-foreground">Paid amount</dt>
-                    <dd className="font-bold">{formatCurrency(invoice.proofPayment.paidAmount)}</dd>
-                  </div>
-                  <div>
-                    <dt className="text-muted-foreground">Receivable</dt>
-                    <dd className="font-bold">{formatCurrency(invoice.proofPayment.receivableAmount)}</dd>
-                  </div>
-                </dl>
+                <div className="mt-4 space-y-3">
+                  {proofPayments.map((proof, index) => (
+                    <div key={`${proof.payment_id || proof.generated_at}-${index}`} className="rounded-md border border-emerald-500/20 bg-background/70 p-3">
+                      <div className="flex flex-col gap-1 sm:flex-row sm:items-start sm:justify-between">
+                        <div>
+                          <p className="font-semibold">{proof.payment_id || `Proof ${proofPayments.length - index}`}</p>
+                          <p className="text-xs text-muted-foreground">
+                            {proof.method || "Customer confirmation"} - {formatProofDateTime(proof.generated_at)}
+                          </p>
+                        </div>
+                        <p className="text-lg font-bold">{formatCurrency(proof.paidAmount)}</p>
+                      </div>
+                      <dl className="mt-3 grid gap-3 text-sm sm:grid-cols-2">
+                        <div>
+                          <dt className="text-muted-foreground">Total amount</dt>
+                          <dd className="font-bold">{formatCurrency(proof.totalAmount)}</dd>
+                        </div>
+                        <div>
+                          <dt className="text-muted-foreground">Receivable after payment</dt>
+                          <dd className="font-bold">{formatCurrency(proof.receivableAmount)}</dd>
+                        </div>
+                      </dl>
+                      {proof.notes && <p className="mt-3 text-sm text-muted-foreground">Notes: {proof.notes}</p>}
+                    </div>
+                  ))}
+                </div>
                 {invoice.feedback && <p className="mt-4 text-sm text-muted-foreground">Feedback: {invoice.feedback}</p>}
               </div>
             )}
@@ -168,11 +195,14 @@ export default function AgreementPage() {
                 <div className="mt-4 grid gap-4 sm:grid-cols-2">
                   <div className="grid gap-2">
                     <Label htmlFor="paid-amount">Payment amount</Label>
-                    <Input id="paid-amount" type="number" min="0" max={receivable} step="0.01" value={paidAmount} onChange={(event) => setPaidAmount(Number(event.target.value))} required />
+                    <Input id="paid-amount" type="number" min="0" max={receivable} step="0.01" value={paidAmount} readOnly aria-readonly="true" required className="bg-muted/60" />
                   </div>
                   <div className="grid gap-2">
                     <Label htmlFor="feedback">Feedback or suggestion</Label>
-                    <Input id="feedback" value={feedback} onChange={(event) => setFeedback(event.target.value)} placeholder="Optional message" />
+                    <textarea 
+                       className="min-h-18 w-full rounded-lg border border-input bg-transparent px-3 py-2 text-sm outline-none transition-colors placeholder:text-muted-foreground focus-visible:border-ring focus-visible:ring-3 focus-visible:ring-ring/50"
+                   
+                    id="feedback" value={feedback} onChange={(event) => setFeedback(event.target.value)} placeholder="Optional message" />
                   </div>
                 </div>
 

@@ -157,10 +157,10 @@ export function LoginForm({ className, ...props }: UserAuthFormProps) {
           </span>
         </div>
       </div>
-      <p className="text-center text-xs leading-5 text-muted-foreground">
+      {/* <p className="text-center text-xs leading-5 text-muted-foreground">
         {setupMode ? "Only works while the users collection is empty." : "Use the email and temporary password provided by an administrator."}
-      </p>
-      <Button
+      </p> */}
+      {/* <Button
         type="button"
         variant="ghost"
         disabled={isLoading}
@@ -168,7 +168,7 @@ export function LoginForm({ className, ...props }: UserAuthFormProps) {
         className="h-9 text-xs text-muted-foreground"
       >
         {setupMode ? "Back to sign in" : "First setup? Create admin"}
-      </Button>
+      </Button> */}
     </div>
   )
 }

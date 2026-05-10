@@ -1,15 +1,17 @@
 "use client"
 
 import Link from "next/link"
+import { useRouter } from "next/navigation"
 import * as React from "react"
-import { Copy, FilePlus2, Link2, Loader2, Mail, Search, Send } from "lucide-react"
+import { Copy, CreditCard, FilePlus2, Link2, Loader2, Mail, Search, Send } from "lucide-react"
 import { toast } from "sonner"
 
 import DashboardLayout from "@/components/dashboard-layout"
 import { formatCurrency } from "@/lib/business-data"
 import { cn } from "@/lib/utils"
-import { customerApi, getApiErrorMessage, invoiceApi, serviceApi, type Customer, type Invoice, type ServiceOffering } from "@/lib/api"
+import { customerApi, getApiErrorMessage, invoiceApi, paymentApi, serviceApi, userApi, type Customer, type Invoice, type ServiceOffering } from "@/lib/api"
 import { Button } from "@/components/ui/button"
+import { Dialog, DialogContent, DialogDescription, DialogFooter, DialogHeader, DialogTitle } from "@/components/ui/dialog"
 import { Input } from "@/components/ui/input"
 import { Label } from "@/components/ui/label"
 
@@ -25,6 +27,7 @@ const statusClasses: Record<string, string> = {
 const todayInputValue = () => new Date().toISOString().slice(0, 10)
 
 export default function InvoicesPage() {
+  const router = useRouter()
   const [query, setQuery] = React.useState("")
   const [customers, setCustomers] = React.useState<Customer[]>([])
   const [services, setServices] = React.useState<ServiceOffering[]>([])
@@ -33,15 +36,21 @@ export default function InvoicesPage() {
   const [selectedServiceId, setSelectedServiceId] = React.useState("")
   const [due, setDue] = React.useState(todayInputValue())
   const [amount, setAmount] = React.useState(0)
-  const [paid, setPaid] = React.useState(0)
+  const paid = 0
   const [isLoading, setIsLoading] = React.useState(true)
+  const [canManageFinancials, setCanManageFinancials] = React.useState(false)
+  const [isCheckingAccess, setIsCheckingAccess] = React.useState(true)
   const [isCreating, setIsCreating] = React.useState(false)
-  const [sendingId, setSendingId] = React.useState<string | null>(null)
+  const [paymentInvoice, setPaymentInvoice] = React.useState<Invoice | null>(null)
+  const [paymentAmount, setPaymentAmount] = React.useState("")
+  const [isRecordingPayment, setIsRecordingPayment] = React.useState(false)
 
   const selectedCustomer = customers.find((customer) => customer.id === selectedCustomerId)
   const selectedService = services.find((service) => service.id === selectedServiceId)
 
   const loadData = React.useCallback(async () => {
+    if (!canManageFinancials) return
+
     setIsLoading(true)
 
     try {
@@ -59,11 +68,28 @@ export default function InvoicesPage() {
     } finally {
       setIsLoading(false)
     }
-  }, [])
+  }, [canManageFinancials])
 
   React.useEffect(() => {
-    loadData()
-  }, [loadData])
+    userApi.getProfile()
+      .then((profile) => {
+        const hasAccess = profile.role === "admin" || profile.role === "manager"
+        setCanManageFinancials(hasAccess)
+
+        if (!hasAccess) {
+          toast.error("Only admins and managers can access invoices")
+          router.replace("/dashboard")
+        }
+      })
+      .catch(() => router.replace("/"))
+      .finally(() => setIsCheckingAccess(false))
+  }, [router])
+
+  React.useEffect(() => {
+    if (canManageFinancials) {
+      loadData()
+    }
+  }, [canManageFinancials, loadData])
 
   React.useEffect(() => {
     if (!selectedService) return
@@ -99,17 +125,52 @@ export default function InvoicesPage() {
     }
   }
 
-  const handleSend = async (invoice: Invoice) => {
-    setSendingId(invoice.id)
+  const handleOpenPaymentModal = (invoice: Invoice) => {
+    if (invoice.receivable <= 0) {
+      toast.info("This invoice is already fully paid")
+      return
+    }
+
+    setPaymentInvoice(invoice)
+    setPaymentAmount(String(invoice.receivable))
+  }
+
+  const handleRecordPayment = async (event: React.FormEvent<HTMLFormElement>) => {
+    event.preventDefault()
+
+    if (!paymentInvoice) return
+
+    const nextPaymentAmount = Number(paymentAmount)
+
+    if (!Number.isFinite(nextPaymentAmount) || nextPaymentAmount <= 0) {
+      toast.error("Enter an amount greater than 0")
+      return
+    }
+
+    if (nextPaymentAmount > paymentInvoice.receivable) {
+      toast.error("Payment amount cannot exceed the receivable amount")
+      return
+    }
+
+    setIsRecordingPayment(true)
 
     try {
-      const result = await invoiceApi.sendInvoice(invoice.invoice_id)
-      setInvoices((current) => current.map((item) => item.id === invoice.id ? result.invoice : item))
-      toast.success(`Invoice email prepared for ${result.email.to}`)
+      const result = await paymentApi.createPayment({
+        invoiceId: paymentInvoice.invoice_id,
+        method: "Invoice action",
+        amount: nextPaymentAmount,
+        paid_at: todayInputValue(),
+        notes: `Payment entered from invoice action for ${paymentInvoice.invoice_id}`,
+      })
+
+      setInvoices((current) => current.map((item) => item.id === result.invoice.id ? result.invoice : item))
+      setPaymentInvoice(null)
+      setPaymentAmount("")
+      toast.success("Payment amount saved")
     } catch (error) {
-      toast.error(getApiErrorMessage(error, "Failed to send invoice"))
+      toast.error(getApiErrorMessage(error, "Failed to save payment amount"))
     } finally {
-      setSendingId(null)
+      setIsRecordingPayment(false)
     }
   }
 
@@ -124,6 +185,11 @@ export default function InvoicesPage() {
 
   return (
     <DashboardLayout>
+      {isCheckingAccess || !canManageFinancials ? (
+        <div className="flex min-h-80 items-center justify-center rounded-lg border border-border bg-card">
+          <Loader2 className="h-6 w-6 animate-spin text-muted-foreground" />
+        </div>
+      ) : (
       <div className="flex flex-col gap-6 md:gap-8">
         <div className="flex flex-col gap-4 sm:flex-row sm:items-end sm:justify-between">
           <div>
@@ -175,10 +241,10 @@ export default function InvoicesPage() {
             <Input id="invoice-amount" type="number" min="0" step="0.01" value={amount} onChange={(event) => setAmount(Number(event.target.value))} required />
           </div>
 
-          <div className="grid gap-2">
+          {/* <div className="grid gap-2">
             <Label htmlFor="invoice-paid">Paid</Label>
             <Input id="invoice-paid" type="number" min="0" step="0.01" value={paid} onChange={(event) => setPaid(Number(event.target.value))} required />
-          </div>
+          </div> */}
 
           <Button type="submit" disabled={isCreating || isLoading} className="gap-2">
             {isCreating ? <Loader2 className="h-4 w-4 animate-spin" /> : <FilePlus2 className="h-4 w-4" />}
@@ -233,20 +299,21 @@ export default function InvoicesPage() {
                     </td>
                     <td className="px-4 py-4">
                       <div className="flex justify-end gap-2">
-                        <Button variant="outline" size="icon-sm" title="Send invoice email" onClick={() => handleSend(invoice)} disabled={sendingId === invoice.id}>
-                          {sendingId === invoice.id ? <Loader2 className="h-4 w-4 animate-spin" /> : <Send className="h-4 w-4" />}
+                        <Button variant="outline" size="icon-sm" title="Record payment amount" onClick={() => handleOpenPaymentModal(invoice)}>
+                          <Send className="h-4 w-4" />
                         </Button>
-                        <Button variant="outline" size="icon-sm" title="Copy agreement link" onClick={() => handleCopyLink(invoice)}>
+                        {/* <Button variant="outline" size="icon-sm" title="Copy agreement link" onClick={() => handleCopyLink(invoice)}>
                           <Copy className="h-4 w-4" />
-                        </Button>
-                        <a href={`mailto:${invoice.email}?subject=${encodeURIComponent(`${invoice.business} invoice ${invoice.invoice_id}`)}&body=${encodeURIComponent(`Please review and confirm your invoice: ${invoice.agreementLink}`)}`}>
+                        </Button> */}
+                        {/* <a href={`mailto:${invoice.email}?subject=${encodeURIComponent(`${invoice.business} invoice ${invoice.invoice_id}`)}&body=${encodeURIComponent(`Please review and confirm your invoice: ${invoice.agreementLink}`)}`}>
                           <Button variant="outline" size="icon-sm" title="Open email draft">
                             <Mail className="h-4 w-4" />
                           </Button>
-                        </a>
+                        </a> */}
                         <Link
                           href={`/agreements/${invoice.invoice_id}`}
                           title="Open agreement link"
+                          target="_blank"
                           className="inline-flex size-7 items-center justify-center rounded-lg border border-border bg-background text-sm transition-colors hover:bg-muted"
                         >
                           <Link2 className="h-4 w-4" />
@@ -264,7 +331,67 @@ export default function InvoicesPage() {
             </table>
           </div>
         </section>
+
+        <Dialog open={Boolean(paymentInvoice)} onOpenChange={(open) => {
+          if (!open && !isRecordingPayment) {
+            setPaymentInvoice(null)
+            setPaymentAmount("")
+          }
+        }}>
+          <DialogContent>
+            <form onSubmit={handleRecordPayment} className="grid gap-4">
+              <DialogHeader>
+                <DialogTitle>Record Payment Amount</DialogTitle>
+                <DialogDescription>
+                  Enter how much the customer wants to pay now. This will update the invoice paid and receivable amounts.
+                </DialogDescription>
+              </DialogHeader>
+
+              {paymentInvoice && (
+                <div className="grid gap-4">
+                  <div className="rounded-lg border border-border bg-muted/30 p-3 text-sm">
+                    <p className="font-medium">{paymentInvoice.invoice_id} - {paymentInvoice.customer}</p>
+                    <p className="mt-1 text-muted-foreground">
+                      Total {formatCurrency(paymentInvoice.amount)} - Paid {formatCurrency(paymentInvoice.paid)} - Receivable {formatCurrency(paymentInvoice.receivable)}
+                    </p>
+                  </div>
+
+                  <div className="grid gap-2">
+                    <Label htmlFor="invoice-action-payment">Amount paying now</Label>
+                    <Input
+                      id="invoice-action-payment"
+                      type="number"
+                      min="0.01"
+                      max={paymentInvoice.receivable}
+                      step="0.01"
+                      value={paymentAmount}
+                      onChange={(event) => setPaymentAmount(event.target.value)}
+                      autoFocus
+                      required
+                    />
+                  </div>
+                </div>
+              )}
+
+              <DialogFooter>
+                <Button type="button" variant="outline" onClick={() => {
+                  if (!isRecordingPayment) {
+                    setPaymentInvoice(null)
+                    setPaymentAmount("")
+                  }
+                }}>
+                  Cancel
+                </Button>
+                <Button type="submit" disabled={isRecordingPayment} className="gap-2">
+                  {isRecordingPayment ? <Loader2 className="h-4 w-4 animate-spin" /> : <CreditCard className="h-4 w-4" />}
+                  Save Amount
+                </Button>
+              </DialogFooter>
+            </form>
+          </DialogContent>
+        </Dialog>
       </div>
+      )}
     </DashboardLayout>
   )
 }
