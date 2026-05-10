@@ -22,9 +22,12 @@ export const metadata: Metadata = {
   description: "Customer, invoice, payment, and service management for Frozen Solution and Primecut Services.",
   keywords: ["Primozen", "Frozen Solution", "Primecut Services", "invoices", "payments", "customers", "service management"],
   icons: {
-    icon: "/primozen-logo.png",
-    shortcut: "/primozen-logo.png",
-    apple: "/primozen-logo.png",
+    icon: [
+      { url: "/favicon.ico", sizes: "any" },
+      { url: "/icon.png", type: "image/png", sizes: "512x512" },
+    ],
+    shortcut: "/favicon.ico",
+    apple: "/apple-icon.png",
   },
   openGraph: {
     title: "Primozen | Frozen Solution + Primecut Services",
@@ -35,9 +38,9 @@ export const metadata: Metadata = {
     type: "website",
     images: [
       {
-        url: "/primozen-logo.png",
-        width: 1717,
-        height: 916,
+        url: "/primozen-meta-image.png",
+        width: 1200,
+        height: 630,
         alt: "Primozen dashboard for Frozen Solution and Primecut Services",
       },
     ],
@@ -46,7 +49,7 @@ export const metadata: Metadata = {
     card: "summary_large_image",
     title: "Primozen | Frozen Solution + Primecut Services",
     description: "Customer, invoice, payment, and service management for Frozen Solution and Primecut Services.",
-    images: ["/primozen-logo.png"],
+    images: ["/primozen-meta-image.png"],
   },
 };
 

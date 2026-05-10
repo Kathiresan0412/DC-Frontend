@@ -8,9 +8,9 @@ export const metadata: Metadata = {
     description: "Generate invoices, send customer agreement links, confirm payments, and track receivable amounts.",
     images: [
       {
-        url: "/primozen-logo.png",
-        width: 1717,
-        height: 916,
+        url: "/primozen-meta-image.png",
+        width: 1200,
+        height: 630,
         alt: "Primozen invoice and payment management",
       },
     ],
@@ -19,7 +19,7 @@ export const metadata: Metadata = {
     card: "summary_large_image",
     title: "Primozen Invoices",
     description: "Generate invoices, send customer agreement links, confirm payments, and track receivable amounts.",
-    images: ["/primozen-logo.png"],
+    images: ["/primozen-meta-image.png"],
   },
 }
 

@@ -13,9 +13,9 @@ export async function generateMetadata({ params }: { params: Promise<{ invoiceId
       description,
       images: [
         {
-          url: "/primozen-logo.png",
-          width: 1717,
-          height: 916,
+          url: "/primozen-meta-image.png",
+          width: 1200,
+          height: 630,
           alt: "Primozen customer agreement and payment proof",
         },
       ],
@@ -24,7 +24,7 @@ export async function generateMetadata({ params }: { params: Promise<{ invoiceId
       card: "summary_large_image",
       title: `${title} | Primozen`,
       description,
-      images: ["/primozen-logo.png"],
+      images: ["/primozen-meta-image.png"],
     },
   }
 }
