@@ -88,7 +88,7 @@ export default function CustomerLandingPage() {
             <a href="#contact" className="hover:text-foreground">Contact</a>
           </nav>
 
-          <Link href="/admin" className={buttonVariants({ size: "sm", variant: "outline" })}>Admin Login</Link>
+          <Link href="/admin" className={buttonVariants({ size: "sm", variant: "outline" })}></Link>
         </div>
       </header>
 
