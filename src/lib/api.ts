@@ -146,6 +146,43 @@ export type PaymentPayload = {
   notes?: string
 }
 
+export type ActivityEntityType = 'auth' | 'profile' | 'user' | 'item' | 'customer' | 'service' | 'invoice' | 'payment'
+
+export type ActivityLog = {
+  id: string
+  action: string
+  entityType: ActivityEntityType
+  entityId: string
+  entityLabel: string
+  summary: string
+  details: Record<string, unknown>
+  actor: {
+    id: string
+    name: string
+    email: string
+    role: AppRole | 'customer' | 'system'
+  }
+  business?: string
+  customerId?: string
+  invoiceId?: string
+  paymentId?: string
+  serviceId?: string
+  targetUserId?: string
+  created_at: string
+}
+
+export type ActivityLogFilters = Partial<{
+  query: string
+  action: string
+  entityType: ActivityEntityType | ''
+  business: string
+  actorId: string
+  customerId: string
+  from: string
+  to: string
+  limit: number
+}>
+
 const api = axios.create({
   baseURL: process.env.NEXT_PUBLIC_API_URL || 'http://localhost:5001',
 })
@@ -221,6 +258,12 @@ export const invoiceApi = {
 export const paymentApi = {
   getPayments: (): Promise<Payment[]> => api.get('/api/payments').then(res => res.data),
   createPayment: (payment: PaymentPayload): Promise<{ payment: Payment; invoice: Invoice }> => api.post('/api/payments', payment).then(res => res.data),
+}
+
+export const activityApi = {
+  getActivityLogs: (filters: ActivityLogFilters = {}): Promise<ActivityLog[]> => (
+    api.get('/api/activity-logs', { params: filters }).then(res => res.data)
+  ),
 }
 
 export const userApi = {

@@ -9,8 +9,8 @@ export default function AuthenticationPage() {
     <div className="min-h-screen bg-background text-foreground">
       <header className="flex items-center justify-between border-b border-border px-4 py-4 md:px-8">
         <div className="flex items-center gap-3">
-          <div className="relative h-10 w-10 overflow-hidden rounded-lg border border-border bg-background">
-            <Image src="/primozen-logo.png" alt="Primozen logo" fill className="object-contain p-1" priority sizes="40px" />
+          <div className="relative h-12 w-12 shrink-0 overflow-hidden rounded-xl border border-border bg-white shadow-sm">
+            <Image src="/primozen-icon.png" alt="Primozen logo" fill className="object-contain" priority sizes="48px" />
           </div>
           <div>
             <p className="font-bold leading-tight">Primozen</p>

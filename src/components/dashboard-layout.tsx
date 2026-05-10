@@ -14,6 +14,7 @@ import {
   LogOut,
   Menu,
   Bell,
+  Activity,
   UserCircle
 } from "lucide-react"
 import { cn } from "@/lib/utils"
@@ -69,9 +70,9 @@ const SidebarContent = ({
   onLogout: () => void
 }) => (
   <div className="flex flex-col h-full">
-    <div className="flex items-center gap-3 mb-10 px-2 mt-2">
-      <div className="relative h-10 w-10 overflow-hidden rounded-xl border border-border bg-background">
-        <Image src="/primozen-logo.png" alt="Primozen logo" fill className="object-contain p-1" sizes="40px" />
+    <div className="flex items-center gap-4 mb-10 px-2 mt-2">
+      <div className="relative h-14 w-14 shrink-0 overflow-hidden rounded-2xl border border-border bg-white shadow-sm">
+        <Image src="/primozen-icon.png" alt="Primozen logo" fill className="object-contain" sizes="56px" />
       </div>
       <div className="min-w-0">
         <span className="block truncate text-lg font-bold tracking-tight">Primozen</span>
@@ -141,6 +142,7 @@ export default function DashboardLayout({
     { href: "/dashboard/services", icon: Handshake, label: "Services" },
     { href: "/dashboard/invoices", icon: FileText, label: "Invoices" },
     { href: "/dashboard/payments", icon: Receipt, label: "Payments" },
+    { href: "/dashboard/activity", icon: Activity, label: "Activity Log" },
     ...(profile?.role === "admin" ? [{ href: "/dashboard/users", icon: Users, label: "Users" }] : []),
     { href: "/dashboard/profile", icon: UserCircle, label: "Profile" },
     { href: "/dashboard/settings", icon: Settings, label: "Settings" },
