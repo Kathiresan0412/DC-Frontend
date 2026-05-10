@@ -270,7 +270,7 @@ export const invoiceApi = {
   createInvoice: (invoice: InvoicePayload): Promise<Invoice> => api.post('/api/invoices', invoice).then(res => res.data),
   sendInvoice: (id: string): Promise<{ invoice: Invoice; email: EmailLog }> => api.post(`/api/invoices/${id}/send`).then(res => res.data),
   getPublicInvoice: (invoiceId: string): Promise<Invoice> => api.get(`/api/public/invoices/${invoiceId}`).then(res => res.data),
-  confirmInvoice: (invoiceId: string, payload: { paidAmount: number; feedback?: string }): Promise<{ invoice: Invoice; email: EmailLog }> =>
+  confirmInvoice: (invoiceId: string, payload: { feedback?: string }): Promise<{ invoice: Invoice; email: EmailLog }> =>
     api.post(`/api/public/invoices/${invoiceId}/confirm`, payload).then(res => res.data),
 }
 

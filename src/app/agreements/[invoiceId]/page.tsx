@@ -1,15 +1,14 @@
 "use client"
 
 import Link from "next/link"
+import Image from "next/image"
 import { useParams } from "next/navigation"
 import * as React from "react"
-import { CheckCircle2, CreditCard, FileText, Home, Loader2, Mail } from "lucide-react"
+import { CheckCircle2, Download, FileText, Home, Loader2, Mail } from "lucide-react"
 import { toast } from "sonner"
 
 import { Button } from "@/components/ui/button"
-import { Input } from "@/components/ui/input"
-import { Label } from "@/components/ui/label"
-import { formatCurrency } from "@/lib/business-data"
+import { businesses, formatCurrency } from "@/lib/business-data"
 import { getApiErrorMessage, invoiceApi, type Invoice } from "@/lib/api"
 
 const formatProofDateTime = (value: string) => {
@@ -29,19 +28,21 @@ export default function AgreementPage() {
   const params = useParams<{ invoiceId: string }>()
   const invoiceId = params.invoiceId
   const [invoice, setInvoice] = React.useState<Invoice | null>(null)
-  const [paidAmount, setPaidAmount] = React.useState(0)
-  const [feedback, setFeedback] = React.useState("")
   const [isLoading, setIsLoading] = React.useState(true)
-  const [isConfirming, setIsConfirming] = React.useState(false)
+  const [showSystemBackLink, setShowSystemBackLink] = React.useState(false)
 
   React.useEffect(() => {
+    const searchParams = new URLSearchParams(window.location.search)
+    const openedFromSystem = searchParams.get("source") === "system" || document.referrer.includes("/dashboard/invoices")
+
+    setShowSystemBackLink(openedFromSystem)
+
     const loadInvoice = async () => {
       setIsLoading(true)
 
       try {
         const nextInvoice = await invoiceApi.getPublicInvoice(invoiceId)
         setInvoice(nextInvoice)
-        setPaidAmount(nextInvoice.receivable)
       } catch (error) {
         toast.error(getApiErrorMessage(error, "Invoice not found"))
       } finally {
@@ -52,22 +53,13 @@ export default function AgreementPage() {
     loadInvoice()
   }, [invoiceId])
 
-  const handleConfirm = async (event: React.FormEvent<HTMLFormElement>) => {
-    event.preventDefault()
-    setIsConfirming(true)
+  const handleDownloadPdf = () => {
+    if (!invoice) return
 
-    try {
-      await invoiceApi.confirmInvoice(invoiceId, { paidAmount, feedback })
-      const nextInvoice = await invoiceApi.getPublicInvoice(invoiceId)
-      setInvoice(nextInvoice)
-      setPaidAmount(nextInvoice.receivable)
-      setFeedback("")
-      toast.success("Agreement confirmed and payment slip emailed")
-    } catch (error) {
-      toast.error(getApiErrorMessage(error, "Failed to confirm agreement"))
-    } finally {
-      setIsConfirming(false)
-    }
+    const previousTitle = document.title
+    document.title = `${invoice.invoice_id} invoice record`
+    window.print()
+    document.title = previousTitle
   }
 
   if (isLoading) {
@@ -93,36 +85,62 @@ export default function AgreementPage() {
   }
 
   const receivable = Math.max(invoice.amount - invoice.paid, 0)
-  const proofPayments = invoice.proofPayments?.length ? invoice.proofPayments : (invoice.proofPayment ? [invoice.proofPayment] : [])
-  const isConfirmed = Boolean(invoice.confirmed_at || proofPayments.length)
-  const canRecordPayment = receivable > 0
+  const proofPayments = invoice.proofPayments?.length ? invoice.proofPayments : (invoice.proofPayment && invoice.proofPayment.paidAmount > 0 ? [invoice.proofPayment] : [])
+  const company = businesses.find((business) => business.name === invoice.business) || businesses[0]
+  const companyEmailHref = `mailto:${company.email}?subject=${encodeURIComponent(`Question about ${invoice.invoice_id}`)}`
 
   return (
     <main className="min-h-screen bg-muted/30 px-4 py-8 text-foreground md:py-12">
       <div className="mx-auto max-w-4xl rounded-lg border border-border bg-card shadow-sm">
         <div className="border-b border-border p-6 md:p-8">
+          <div className="mb-6 flex flex-col gap-4 border-b border-border pb-6 sm:flex-row sm:items-center sm:justify-between">
+            <div className="flex items-center gap-4">
+              <div className="relative size-16 shrink-0 rounded-lg border border-border bg-background p-2">
+                <Image src="/primozen-logo.png" alt={`${company.name} logo`} fill className="object-contain p-2" sizes="64px" priority />
+              </div>
+              <div>
+                <p className="text-xs font-medium uppercase text-muted-foreground">{company.service}</p>
+                <h2 className="text-xl font-bold">{company.name}</h2>
+                <p className="text-sm text-muted-foreground">{company.email}</p>
+              </div>
+            </div>
+            <div className="text-sm text-muted-foreground sm:text-right">
+              <p className="font-medium text-foreground">Company details</p>
+              <p>Primary: {company.phone}</p>
+              <p>Secondary: {company.secondaryPhone}</p>
+            </div>
+          </div>
+
           <div className="flex flex-col gap-4 md:flex-row md:items-start md:justify-between">
             <div>
-              <p className="text-sm font-medium text-muted-foreground">Customer agreement and payment letter</p>
+              <p className="text-sm font-medium text-muted-foreground">Invoice and payment history</p>
               <h1 className="mt-2 text-2xl font-bold md:text-3xl">{invoice.invoice_id}</h1>
               <p className="mt-1 text-sm text-muted-foreground">{invoice.business} - {invoice.service}</p>
             </div>
-            <Link href="/dashboard/invoices" className="inline-flex items-center gap-2 text-sm font-medium text-muted-foreground hover:text-foreground">
-              <Home className="h-4 w-4" />
-              Back to system
-            </Link>
+            <div className="no-print flex flex-wrap gap-3 md:justify-end">
+              <Button variant="outline" className="gap-2" onClick={handleDownloadPdf}>
+                <Download className="h-4 w-4" />
+                Download PDF
+              </Button>
+              {showSystemBackLink && (
+                <Link href="/dashboard/invoices" className="inline-flex items-center gap-2 text-sm font-medium text-muted-foreground hover:text-foreground">
+                  <Home className="h-4 w-4" />
+                  Back to system
+                </Link>
+              )}
+            </div>
           </div>
         </div>
 
         <section className="grid gap-6 p-6 md:grid-cols-[1fr_280px] md:p-8">
           <div className="space-y-6">
             <div>
-              <h2 className="text-lg font-semibold">Agreement Letter</h2>
+              <h2 className="text-lg font-semibold">Invoice Record</h2>
               <p className="mt-3 text-sm leading-6 text-muted-foreground">
-                This letter confirms that {invoice.customer} agrees to the quoted {invoice.service} service from {invoice.business}. By confirming, the customer accepts the service details, billing amount, due date, and payment responsibility.
+                This page shows the service details, invoice total, saved payments, and current pending balance for {invoice.service} from {invoice.business}.
               </p>
               <p className="mt-3 text-sm leading-6 text-muted-foreground">
-                After confirmation, Primozen updates the customer file with the latest service date, service name, paid amount, receivable amount, and customer feedback.
+                Viewing this page does not record a payment and does not change the paid amount.
               </p>
             </div>
 
@@ -148,11 +166,11 @@ export default function AgreementPage() {
               </dl>
             </div>
 
-            {isConfirmed && proofPayments.length > 0 && (
+            {proofPayments.length > 0 ? (
               <div className="rounded-lg border border-emerald-500/30 bg-emerald-500/10 p-4">
                 <h3 className="flex items-center gap-2 font-semibold text-emerald-800 dark:text-emerald-300">
                   <CheckCircle2 className="h-4 w-4" />
-                  Payment proof history
+                  Payment history
                 </h3>
                 <div className="mt-4 space-y-3">
                   {proofPayments.map((proof, index) => (
@@ -182,40 +200,20 @@ export default function AgreementPage() {
                 </div>
                 {invoice.feedback && <p className="mt-4 text-sm text-muted-foreground">Feedback: {invoice.feedback}</p>}
               </div>
-            )}
-
-            {canRecordPayment ? (
-              <form onSubmit={handleConfirm} className="rounded-lg border border-border p-4">
-                <h3 className="font-semibold">{isConfirmed ? "Pending Payment" : "Customer Confirmation"}</h3>
-                <label className="mt-4 flex items-start gap-3 text-sm">
-                  <input type="checkbox" className="mt-1 h-4 w-4 accent-emerald-700" required />
-                  <span>I agree to the service terms, invoice amount, and payment responsibility for this service.</span>
-                </label>
-
-                <div className="mt-4 grid gap-4 sm:grid-cols-2">
-                  <div className="grid gap-2">
-                    <Label htmlFor="paid-amount">Payment amount</Label>
-                    <Input id="paid-amount" type="number" min="0" max={receivable} step="0.01" value={paidAmount} readOnly aria-readonly="true" required className="bg-muted/60" />
-                  </div>
-                  <div className="grid gap-2">
-                    <Label htmlFor="feedback">Feedback or suggestion</Label>
-                    <textarea 
-                       className="min-h-18 w-full rounded-lg border border-input bg-transparent px-3 py-2 text-sm outline-none transition-colors placeholder:text-muted-foreground focus-visible:border-ring focus-visible:ring-3 focus-visible:ring-ring/50"
-                   
-                    id="feedback" value={feedback} onChange={(event) => setFeedback(event.target.value)} placeholder="Optional message" />
-                  </div>
-                </div>
-
-                <Button type="submit" disabled={isConfirming} className="mt-4 gap-2">
-                  {isConfirming ? <Loader2 className="h-4 w-4 animate-spin" /> : <CreditCard className="h-4 w-4" />}
-                  {isConfirmed ? "Record pending payment" : "Confirm and generate proof"}
-                </Button>
-              </form>
             ) : (
               <div className="rounded-lg border border-border p-4 text-sm text-muted-foreground">
-                This invoice is fully paid. No pending amount remains.
+                No previous payments have been recorded for this invoice yet.
               </div>
             )}
+
+            <div className="rounded-lg border border-border p-4">
+              <h3 className="font-semibold">Balance Status</h3>
+              <p className="mt-2 text-sm text-muted-foreground">
+                {receivable > 0
+                  ? `Pending amount remaining: ${formatCurrency(receivable)}.`
+                  : "This invoice is fully paid. No pending amount remains."}
+              </p>
+            </div>
           </div>
 
           <aside className="rounded-lg border border-border bg-background p-5">
@@ -227,11 +225,16 @@ export default function AgreementPage() {
             <p className="mt-2 text-sm text-muted-foreground">Due {invoice.due}</p>
 
             <div className="mt-6 grid gap-2">
-              <a href={`mailto:${invoice.email}?subject=${encodeURIComponent(`Question about ${invoice.invoice_id}`)}`}>
-                <Button variant="outline" className="w-full gap-2">
-                  <Mail className="h-4 w-4" />
-                  Email question
-                </Button>
+              <Button variant="default" className="no-print w-full gap-2" onClick={handleDownloadPdf}>
+                <Download className="h-4 w-4" />
+                Download PDF
+              </Button>
+              <a
+                href={companyEmailHref}
+                className="no-print inline-flex h-8 w-full items-center justify-center gap-2 rounded-lg border border-border bg-background px-2.5 text-sm font-medium transition-colors hover:bg-muted hover:text-foreground"
+              >
+                <Mail className="h-4 w-4" />
+                Email question
               </a>
             </div>
 
@@ -240,7 +243,7 @@ export default function AgreementPage() {
                 <CheckCircle2 className="h-4 w-4" />
                 Secure record
               </p>
-              <p className="mt-1 text-xs">Agreement, feedback, and payment proof are saved to the customer file.</p>
+              <p className="mt-1 text-xs">Payments shown here are saved from the company payment ledger.</p>
             </div>
           </aside>
         </section>

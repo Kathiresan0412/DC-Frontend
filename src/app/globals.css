@@ -128,3 +128,29 @@
     @apply font-sans;
   }
 }
+
+@media print {
+  @page {
+    margin: 16mm;
+  }
+
+  body {
+    background: white;
+  }
+
+  .no-print {
+    display: none !important;
+  }
+
+  main {
+    min-height: auto !important;
+    background: white !important;
+    padding: 0 !important;
+  }
+
+  main > div {
+    max-width: none !important;
+    border: 0 !important;
+    box-shadow: none !important;
+  }
+}

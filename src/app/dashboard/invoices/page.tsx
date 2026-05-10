@@ -336,7 +336,7 @@ export default function InvoicesPage() {
                           </Button>
                         </a> */}
                         <Link
-                          href={`/agreements/${invoice.invoice_id}`}
+                          href={`/agreements/${invoice.invoice_id}?source=system`}
                           title="Open agreement link"
                           target="_blank"
                           className="inline-flex size-7 items-center justify-center rounded-lg border border-border bg-background text-sm transition-colors hover:bg-muted"
