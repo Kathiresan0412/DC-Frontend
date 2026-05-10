@@ -228,7 +228,7 @@ function ServiceFormDialog({
                 Manage pricing, flyer details, contact information, and service bullet points.
               </DialogDescription>
             </div>
-            <VoiceInputButton onTranscript={handleVoiceTranscript} disabled={isSaving} className="w-fit" />
+            {/* <VoiceInputButton onTranscript={handleVoiceTranscript} disabled={isSaving} className="w-fit" /> */}
           </div>
         </DialogHeader>
         <form onSubmit={handleSubmit} className="grid max-h-[75vh] gap-4 overflow-y-auto pr-1">
