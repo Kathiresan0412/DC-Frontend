@@ -48,8 +48,8 @@ const statusClasses: Record<CustomerStatus, string> = {
 }
 
 const customerVoiceAliases = {
-  name: ["name", "customer"],
-  email: ["email", "e mail"],
+  name: ["customer name", "name"],
+  email: ["customer email", "email address", "email", "e mail", "mail"],
   phone: ["phone", "mobile", "number"],
   address: ["address", "location"],
   business: ["business", "company"],
@@ -59,12 +59,12 @@ const customerVoiceAliases = {
   lastService: ["last service", "last visit"],
 } satisfies Record<keyof CustomerPayload, string[]>
 
-const voiceLabels = Object.values(customerVoiceAliases).flat()
+const voiceLabels = Object.values(customerVoiceAliases).flat().sort((a, b) => b.length - a.length)
 const escapeRegExp = (value: string) => value.replace(/[.*+?^${}()|[\]\\]/g, "\\$&")
 
 const getVoiceField = (transcript: string, aliases: string[]) => {
   const boundary = voiceLabels.map(escapeRegExp).join("|")
-  const labels = aliases.map(escapeRegExp).join("|")
+  const labels = [...aliases].sort((a, b) => b.length - a.length).map(escapeRegExp).join("|")
   const match = transcript.match(new RegExp(`(?:^|[,.;]\\s*|\\s)(${labels})\\s*(?:is|as|:)?\\s*(.*?)(?=\\s+(?:${boundary})\\s*(?:is|as|:)?|[,.;]\\s*(?:${boundary})\\s*(?:is|as|:)?|$)`, "i"))
 
   return match?.[2]?.trim()
@@ -72,8 +72,13 @@ const getVoiceField = (transcript: string, aliases: string[]) => {
 
 const normalizeEmail = (value: string) => value
   .toLowerCase()
-  .replace(/\s+at\s+/g, "@")
-  .replace(/\s+dot\s+/g, ".")
+  .replace(/\s+(at|@)\s+/g, "@")
+  .replace(/\s+(dot|period|point)\s+/g, ".")
+  .replace(/\s+(underscore|under score)\s+/g, "_")
+  .replace(/\s+(dash|hyphen|minus)\s+/g, "-")
+  .replace(/\s+(plus)\s+/g, "+")
+  .replace(/\s+(gmail|yahoo|hotmail|outlook|icloud)\s+(com|ca|net|org)\b/g, "$1.$2")
+  .replace(/\s+(com|ca|net|org|co|io)\b/g, ".$1")
   .replace(/\s+/g, "")
 
 const parseCustomerVoice = (transcript: string): Partial<CustomerPayload> => {

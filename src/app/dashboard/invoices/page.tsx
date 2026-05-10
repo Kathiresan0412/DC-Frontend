@@ -44,6 +44,7 @@ export default function InvoicesPage() {
   const [paymentInvoice, setPaymentInvoice] = React.useState<Invoice | null>(null)
   const [paymentAmount, setPaymentAmount] = React.useState("")
   const [isRecordingPayment, setIsRecordingPayment] = React.useState(false)
+  const [sendingInvoiceId, setSendingInvoiceId] = React.useState<string | null>(null)
 
   const selectedCustomer = customers.find((customer) => customer.id === selectedCustomerId)
   const selectedService = services.find((service) => service.id === selectedServiceId)
@@ -133,6 +134,21 @@ export default function InvoicesPage() {
 
     setPaymentInvoice(invoice)
     setPaymentAmount(String(invoice.receivable))
+  }
+
+  const handleSendInvoice = async (invoice: Invoice) => {
+    setSendingInvoiceId(invoice.id)
+
+    try {
+      const result = await invoiceApi.sendInvoice(invoice.invoice_id)
+
+      setInvoices((current) => current.map((item) => item.id === result.invoice.id ? result.invoice : item))
+      toast.success(`Invoice sent to ${invoice.email}`)
+    } catch (error) {
+      toast.error(getApiErrorMessage(error, "Failed to send invoice email"))
+    } finally {
+      setSendingInvoiceId(null)
+    }
   }
 
   const handleRecordPayment = async (event: React.FormEvent<HTMLFormElement>) => {
@@ -299,8 +315,17 @@ export default function InvoicesPage() {
                     </td>
                     <td className="px-4 py-4">
                       <div className="flex justify-end gap-2">
+                        <Button
+                          variant="outline"
+                          size="icon-sm"
+                          title="Send invoice email"
+                          onClick={() => handleSendInvoice(invoice)}
+                          disabled={sendingInvoiceId === invoice.id}
+                        >
+                          {sendingInvoiceId === invoice.id ? <Loader2 className="h-4 w-4 animate-spin" /> : <Send className="h-4 w-4" />}
+                        </Button>
                         <Button variant="outline" size="icon-sm" title="Record payment amount" onClick={() => handleOpenPaymentModal(invoice)}>
-                          <Send className="h-4 w-4" />
+                          <CreditCard className="h-4 w-4" />
                         </Button>
                         {/* <Button variant="outline" size="icon-sm" title="Copy agreement link" onClick={() => handleCopyLink(invoice)}>
                           <Copy className="h-4 w-4" />
