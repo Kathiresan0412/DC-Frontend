@@ -274,10 +274,10 @@ export default function CustomerLandingPage() {
                           </li>
                         ))}
                       </ul>
-                      <div className="mt-5 flex items-center gap-2 text-sm text-muted-foreground">
+                      {/* <div className="mt-5 flex items-center gap-2 text-sm text-muted-foreground">
                         <Phone className="size-4" />
                         <a href={`tel:${(contact?.phone || service.contactPhone).replace(/\s/g, "")}`} className="font-medium text-foreground hover:underline">{contact?.phone || service.contactPhone}</a>
-                      </div>
+                      </div> */}
                     </div>
                   </article>
                 )
