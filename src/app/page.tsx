@@ -7,6 +7,7 @@ import { ArrowRight, CheckCircle2, Clock3, Mail, MapPin, Phone, Send, ShieldChec
 import { toast } from "sonner"
 
 import { Button, buttonVariants } from "@/components/ui/button"
+import { ThemeToggle } from "@/components/theme-toggle"
 import { Input } from "@/components/ui/input"
 import { Label } from "@/components/ui/label"
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select"
@@ -16,6 +17,12 @@ import { cn } from "@/lib/utils"
 
 const businessImages = new Map(businesses.map((business) => [business.name, business.image]))
 const businessContacts = new Map(businesses.map((business) => [business.name, business]))
+const serviceImages = new Map([
+  ["Frozen Solution-Silver Snow", "/service-silver-snow.png"],
+  ["Frozen Solution-Gold Snow", "/service-gold-snow.png"],
+  ["Primecut Services-Residential Lawn", "/service-residential-lawn.png"],
+  ["Primecut Services-Commercial Lawn", "/service-commercial-lawn.png"],
+])
 
 const stats = [
   { value: "24/7", label: "winter response" },
@@ -88,7 +95,12 @@ export default function CustomerLandingPage() {
             <a href="#contact" className="hover:text-foreground">Contact</a>
           </nav>
 
-          <Link href="/admin" className={buttonVariants({ size: "sm", variant: "outline" })}></Link>
+          <div className="flex items-center gap-2">
+            <ThemeToggle />
+            <Link href="/admin" className={buttonVariants({ size: "sm", variant: "outline" })}>
+              Admin
+            </Link>
+          </div>
         </div>
       </header>
 
@@ -96,11 +108,11 @@ export default function CustomerLandingPage() {
         <section className="relative isolate overflow-hidden">
           <div className="absolute inset-0 -z-10 grid md:grid-cols-2">
             <div className="relative min-h-[36rem]">
-              <Image src="/frozen-solution-snow.jpeg" alt="Frozen Solution snow removal service" fill className="object-cover" priority sizes="50vw" />
+              <Image src="/hero-snow-service.png" alt="Frozen Solution snow removal service" fill className="object-cover" priority sizes="50vw" />
               <div className="absolute inset-0 bg-black/50" />
             </div>
             <div className="relative hidden min-h-[36rem] md:block">
-              <Image src="/primecut-lawn.jpeg" alt="Primecut Services lawn care service" fill className="object-cover" priority sizes="50vw" />
+              <Image src="/hero-lawn-service.png" alt="Primecut Services lawn care service" fill className="object-cover" priority sizes="50vw" />
               <div className="absolute inset-0 bg-black/30" />
             </div>
           </div>
@@ -155,11 +167,12 @@ export default function CustomerLandingPage() {
               {servicePackages.map((service) => {
                 const contact = businessContacts.get(service.business)
                 const Icon = service.business === "Frozen Solution" ? Snowflake : TreePine
+                const serviceImage = serviceImages.get(`${service.business}-${service.name}`) || businessImages.get(service.business) || "/primozen-meta-image.png"
 
                 return (
                   <article key={`${service.business}-${service.name}`} className="overflow-hidden rounded-lg border border-border bg-card shadow-sm">
                     <div className="relative aspect-[4/3]">
-                      <Image src={businessImages.get(service.business) || "/primozen-meta-image.png"} alt={`${service.name} service`} fill className="object-cover" sizes="(min-width: 1280px) 25vw, (min-width: 768px) 50vw, 100vw" />
+                      <Image src={serviceImage} alt={`${service.name} service`} fill className="object-cover" sizes="(min-width: 1280px) 25vw, (min-width: 768px) 50vw, 100vw" />
                     </div>
                     <div className="p-5">
                       <div className="flex items-start justify-between gap-3">
