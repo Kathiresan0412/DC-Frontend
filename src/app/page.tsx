@@ -67,6 +67,8 @@ const stats = [
   { value: "GTA", label: "residential and commercial" },
 ]
 
+const servicePreviewLimit = 4
+
 const initialForm = {
   name: "",
   email: "",
@@ -82,9 +84,15 @@ export default function CustomerLandingPage() {
   const [services, setServices] = React.useState<ServiceOffering[]>(fallbackServices)
   const [form, setForm] = React.useState(initialForm)
   const [isSubmitting, setIsSubmitting] = React.useState(false)
+  const [showAllServices, setShowAllServices] = React.useState(false)
 
   const businessContacts = React.useMemo(() => new Map(landingBusinesses.map((business) => [business.name, business])), [landingBusinesses])
   const selectedService = React.useMemo(() => services.find((service) => service.id === form.serviceId) || services[0], [form.serviceId, services])
+  const visibleServices = React.useMemo(
+    () => showAllServices ? services : services.slice(0, servicePreviewLimit),
+    [services, showAllServices]
+  )
+  const hasMoreServices = services.length > servicePreviewLimit
 
   React.useEffect(() => {
     let isMounted = true
@@ -241,7 +249,7 @@ export default function CustomerLandingPage() {
             </div>
 
             <div className="mt-8 grid gap-5 md:grid-cols-2 xl:grid-cols-4">
-              {services.map((service) => {
+              {visibleServices.map((service) => {
                 const contact = businessContacts.get(service.business)
                 const Icon = service.business === "Frozen Solution" ? Snowflake : TreePine
                 const serviceImage = getServiceImage(service)
@@ -283,6 +291,15 @@ export default function CustomerLandingPage() {
                 )
               })}
             </div>
+
+            {hasMoreServices && !showAllServices && (
+              <div className="mt-8 flex justify-center">
+                <Button type="button" variant="outline" size="lg" onClick={() => setShowAllServices(true)}>
+                  See all services
+                  <ArrowRight />
+                </Button>
+              </div>
+            )}
           </div>
         </section>
 
