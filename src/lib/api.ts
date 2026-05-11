@@ -80,6 +80,23 @@ export type ServiceOffering = {
 
 export type ServicePayload = Omit<ServiceOffering, 'id' | 'created_at' | 'updated_at'>
 
+export type PublicBusinessConfig = {
+  key: string
+  name: string
+  service: string
+  email: string
+  phone: string
+  secondaryPhone: string
+  serviceArea: string
+  image: string
+  accent: string
+}
+
+export type PublicAppConfig = {
+  appName: string
+  businesses: PublicBusinessConfig[]
+}
+
 export type InvoiceStatus = 'Draft' | 'Sent' | 'Confirmed' | 'Paid' | 'Due' | 'Overdue'
 
 export type EmailLog = {
@@ -256,6 +273,11 @@ export const customerApi = {
 
 export const publicEnquiryApi = {
   create: (enquiry: PublicEnquiryPayload): Promise<Customer> => api.post('/api/public/enquiries', enquiry).then(res => res.data),
+}
+
+export const publicLandingApi = {
+  getConfig: (): Promise<PublicAppConfig> => api.get('/api/public/config').then(res => res.data),
+  getServices: (): Promise<ServiceOffering[]> => api.get('/api/public/services').then(res => res.data),
 }
 
 export const serviceApi = {

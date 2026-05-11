@@ -12,16 +12,53 @@ import { Input } from "@/components/ui/input"
 import { Label } from "@/components/ui/label"
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select"
 import { businesses, formatCurrency, servicePackages } from "@/lib/business-data"
-import { getApiErrorMessage, publicEnquiryApi } from "@/lib/api"
+import { getApiErrorMessage, publicEnquiryApi, publicLandingApi, type PublicBusinessConfig, type ServiceOffering } from "@/lib/api"
 import { cn } from "@/lib/utils"
 
-const businessImages = new Map(businesses.map((business) => [business.name, business.image]))
-const businessContacts = new Map(businesses.map((business) => [business.name, business]))
+const appNameFallback = process.env.NEXT_PUBLIC_APP_NAME || "Primozen"
+
+const fallbackBusinesses: PublicBusinessConfig[] = businesses.map((business) => ({
+  ...business,
+  serviceArea: "",
+}))
+
+const fallbackServices: ServiceOffering[] = servicePackages.map((service, index) => {
+  const business = fallbackBusinesses.find((item) => item.name === service.business)
+
+  return {
+    id: `fallback-${index}`,
+    name: service.name,
+    business: service.business,
+    category: business?.service || "",
+    description: "",
+    price: service.price,
+    billing: service.billing,
+    status: "Active",
+    includes: service.includes,
+    trustPoints: [],
+    serviceArea: business?.serviceArea || "",
+    contactPhone: business?.phone || "",
+    secondaryPhone: business?.secondaryPhone || "",
+    email: business?.email || "",
+    imageUrl: "",
+    source: "Local fallback",
+  }
+})
+
 const serviceImages = new Map([
   ["Frozen Solution-Silver Snow", "/service-silver-snow.png"],
   ["Frozen Solution-Gold Snow", "/service-gold-snow.png"],
+  ["Frozen Solution-Snow Blowing", "/service-silver-snow.png"],
+  ["Frozen Solution-Snow Shoveling", "/service-silver-snow.png"],
+  ["Frozen Solution-Salting/Sanding", "/service-silver-snow.png"],
+  ["Frozen Solution-Snow Plowing", "/service-gold-snow.png"],
+  ["Frozen Solution-Ice Removal", "/service-gold-snow.png"],
   ["Primecut Services-Residential Lawn", "/service-residential-lawn.png"],
   ["Primecut Services-Commercial Lawn", "/service-commercial-lawn.png"],
+  ["Primecut Services-Lawn Mowing", "/service-residential-lawn.png"],
+  ["Primecut Services-Edging", "/service-residential-lawn.png"],
+  ["Primecut Services-Lawn Cleanup", "/service-residential-lawn.png"],
+  ["Primecut Services-Fertilization & Weed Control", "/service-commercial-lawn.png"],
 ])
 
 const stats = [
@@ -30,30 +67,70 @@ const stats = [
   { value: "GTA", label: "residential and commercial" },
 ]
 
-const serviceOptions = servicePackages.map((service) => `${service.business} - ${service.name}`)
-
 const initialForm = {
   name: "",
   email: "",
   phone: "",
   address: "",
-  service: serviceOptions[0] || "",
+  serviceId: "",
   message: "",
 }
 
 export default function CustomerLandingPage() {
+  const [appName, setAppName] = React.useState(appNameFallback)
+  const [landingBusinesses, setLandingBusinesses] = React.useState<PublicBusinessConfig[]>(fallbackBusinesses)
+  const [services, setServices] = React.useState<ServiceOffering[]>(fallbackServices)
   const [form, setForm] = React.useState(initialForm)
   const [isSubmitting, setIsSubmitting] = React.useState(false)
 
-  const selectedBusiness = form.service.split(" - ")[0] || businesses[0]?.name || ""
-  const selectedService = form.service.split(" - ").slice(1).join(" - ") || form.service
+  const businessContacts = React.useMemo(() => new Map(landingBusinesses.map((business) => [business.name, business])), [landingBusinesses])
+  const selectedService = React.useMemo(() => services.find((service) => service.id === form.serviceId) || services[0], [form.serviceId, services])
+
+  React.useEffect(() => {
+    let isMounted = true
+
+    Promise.all([publicLandingApi.getConfig(), publicLandingApi.getServices()])
+      .then(([config, apiServices]) => {
+        if (!isMounted) return
+
+        setAppName(config.appName || appNameFallback)
+        setLandingBusinesses(config.businesses.length ? config.businesses : fallbackBusinesses)
+        setServices(apiServices.length ? apiServices : fallbackServices)
+      })
+      .catch((error) => {
+        toast.error(getApiErrorMessage(error, "Could not load live services. Showing saved defaults."))
+      })
+
+    return () => {
+      isMounted = false
+    }
+  }, [])
+
+  React.useEffect(() => {
+    if (!form.serviceId && services[0]?.id) {
+      setForm((current) => ({ ...current, serviceId: services[0].id }))
+    }
+  }, [form.serviceId, services])
 
   const updateField = (field: keyof typeof form, value: string) => {
     setForm((current) => ({ ...current, [field]: value }))
   }
 
+  const getServiceImage = (service: ServiceOffering) => (
+    service.imageUrl ||
+    serviceImages.get(`${service.business}-${service.name}`) ||
+    serviceImages.get(`${service.business}-${service.category}`) ||
+    businessContacts.get(service.business)?.image ||
+    "/primozen-meta-image.png"
+  )
+
   const submitEnquiry = async (event: React.FormEvent<HTMLFormElement>) => {
     event.preventDefault()
+    if (!selectedService) {
+      toast.error("Please choose a service.")
+      return
+    }
+
     setIsSubmitting(true)
 
     try {
@@ -62,12 +139,12 @@ export default function CustomerLandingPage() {
         email: form.email,
         phone: form.phone,
         address: form.address,
-        business: selectedBusiness,
-        service: selectedService,
+        business: selectedService.business,
+        service: selectedService.name,
         message: form.message,
       })
       toast.success("Enquiry sent. Our team will contact you shortly.")
-      setForm({ ...initialForm, service: form.service })
+      setForm({ ...initialForm, serviceId: form.serviceId })
     } catch (error) {
       toast.error(getApiErrorMessage(error, "Could not send enquiry. Please call or email us."))
     } finally {
@@ -84,7 +161,7 @@ export default function CustomerLandingPage() {
               <Image src="/primozen-icon.png" alt="Primozen logo" fill className="object-contain" priority sizes="40px" />
             </span>
             <span>
-              <span className="block text-sm font-bold leading-tight">Primozen</span>
+              <span className="block text-sm font-bold leading-tight">{appName}</span>
               <span className="block text-xs text-muted-foreground">Frozen Solution + Primecut Services</span>
             </span>
           </Link>
@@ -143,7 +220,7 @@ export default function CustomerLandingPage() {
             <div className="grid gap-3 self-end pb-4 sm:grid-cols-3 lg:self-center lg:pb-0">
               {stats.map((stat) => (
                 <div key={stat.label} className="rounded-lg border border-white/18 bg-white/14 p-4 text-white shadow-lg backdrop-blur">
-                  <p className="text-2xl font-bold">{stat.value}</p>
+                <p className="text-2xl font-bold">{stat.label === "trusted service teams" ? landingBusinesses.length : stat.value}</p>
                   <p className="mt-1 text-xs uppercase tracking-wide text-white/72">{stat.label}</p>
                 </div>
               ))}
@@ -164,13 +241,14 @@ export default function CustomerLandingPage() {
             </div>
 
             <div className="mt-8 grid gap-5 md:grid-cols-2 xl:grid-cols-4">
-              {servicePackages.map((service) => {
+              {services.map((service) => {
                 const contact = businessContacts.get(service.business)
                 const Icon = service.business === "Frozen Solution" ? Snowflake : TreePine
-                const serviceImage = serviceImages.get(`${service.business}-${service.name}`) || businessImages.get(service.business) || "/primozen-meta-image.png"
+                const serviceImage = getServiceImage(service)
+                const includes = service.includes.length ? service.includes : [service.description].filter(Boolean)
 
                 return (
-                  <article key={`${service.business}-${service.name}`} className="overflow-hidden rounded-lg border border-border bg-card shadow-sm">
+                  <article key={service.id} className="overflow-hidden rounded-lg border border-border bg-card shadow-sm">
                     <div className="relative aspect-[4/3]">
                       <Image src={serviceImage} alt={`${service.name} service`} fill className="object-cover" sizes="(min-width: 1280px) 25vw, (min-width: 768px) 50vw, 100vw" />
                     </div>
@@ -189,7 +267,7 @@ export default function CustomerLandingPage() {
                         <span className="ml-2 text-sm font-medium text-muted-foreground">{service.billing}</span>
                       </p>
                       <ul className="mt-4 space-y-2 text-sm text-muted-foreground">
-                        {service.includes.map((item) => (
+                        {includes.map((item) => (
                           <li key={item} className="flex gap-2">
                             <CheckCircle2 className="mt-0.5 size-4 shrink-0 text-emerald-600" />
                             <span>{item}</span>
@@ -198,7 +276,7 @@ export default function CustomerLandingPage() {
                       </ul>
                       <div className="mt-5 flex items-center gap-2 text-sm text-muted-foreground">
                         <Phone className="size-4" />
-                        <a href={`tel:${contact?.phone.replace(/\s/g, "")}`} className="font-medium text-foreground hover:underline">{contact?.phone}</a>
+                        <a href={`tel:${(contact?.phone || service.contactPhone).replace(/\s/g, "")}`} className="font-medium text-foreground hover:underline">{contact?.phone || service.contactPhone}</a>
                       </div>
                     </div>
                   </article>
@@ -214,7 +292,7 @@ export default function CustomerLandingPage() {
               <p className="text-sm font-semibold uppercase tracking-wide text-muted-foreground">About us</p>
               <h2 className="mt-2 text-3xl font-bold tracking-tight md:text-4xl">One local team, two specialist services.</h2>
               <p className="mt-5 text-sm leading-7 text-muted-foreground">
-                Primozen connects customers with Frozen Solution for snow removal and Primecut Services for lawn care. We focus on fast communication, clean work, and reliable scheduling for residential and commercial properties.
+                {appName} connects customers with Frozen Solution for snow removal and Primecut Services for lawn care. We focus on fast communication, clean work, and reliable scheduling for residential and commercial properties.
               </p>
             </div>
             <div className="grid gap-4 sm:grid-cols-3">
@@ -242,7 +320,7 @@ export default function CustomerLandingPage() {
                 Send an enquiry and we will follow up with pricing, availability, and the right plan for your property.
               </p>
               <div className="mt-8 space-y-4">
-                {businesses.map((business) => (
+                {landingBusinesses.map((business) => (
                   <div key={business.name} className="rounded-lg border border-border p-4">
                     <p className="font-semibold">{business.name}</p>
                     <div className="mt-3 grid gap-2 text-sm text-muted-foreground">
@@ -270,13 +348,13 @@ export default function CustomerLandingPage() {
                 </div>
                 <div className="space-y-2">
                   <Label>Service</Label>
-                  <Select value={form.service} onValueChange={(value) => value && updateField("service", value)}>
+                  <Select value={form.serviceId} onValueChange={(value) => value && updateField("serviceId", value)}>
                     <SelectTrigger className="h-10 w-full">
                       <SelectValue />
                     </SelectTrigger>
                     <SelectContent>
-                      {serviceOptions.map((service) => (
-                        <SelectItem key={service} value={service}>{service}</SelectItem>
+                      {services.map((service) => (
+                        <SelectItem key={service.id} value={service.id}>{service.business} - {service.name}</SelectItem>
                       ))}
                     </SelectContent>
                   </Select>
@@ -307,7 +385,7 @@ export default function CustomerLandingPage() {
 
       <footer className="border-t border-border py-6">
         <div className="mx-auto flex max-w-7xl flex-col gap-3 px-4 text-sm text-muted-foreground md:flex-row md:items-center md:justify-between md:px-8">
-          <p>© {new Date().getFullYear()} Primozen. Frozen Solution + Primecut Services.</p>
+          <p>© {new Date().getFullYear()} {appName}. Frozen Solution + Primecut Services.</p>
           <Link href="/admin" className="font-medium text-foreground hover:underline">Admin Login</Link>
         </div>
       </footer>

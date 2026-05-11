@@ -2,6 +2,10 @@ import type { Metadata } from "next";
 import { Geist, Geist_Mono } from "next/font/google";
 import "./globals.css";
 
+const appName = process.env.NEXT_PUBLIC_APP_NAME || "Primozen";
+const appTitle = `${appName} | Frozen Solution + Primecut Services`;
+const appDescription = "Customer, invoice, payment, and service management for Frozen Solution and Primecut Services.";
+
 const geistSans = Geist({
   variable: "--font-geist-sans",
   subsets: ["latin"],
@@ -14,13 +18,13 @@ const geistMono = Geist_Mono({
 
 export const metadata: Metadata = {
   metadataBase: new URL(process.env.NEXT_PUBLIC_APP_URL ?? "http://localhost:3000"),
-  applicationName: "Primozen",
+  applicationName: appName,
   title: {
-    default: "Primozen | Frozen Solution + Primecut Services",
-    template: "%s | Primozen",
+    default: appTitle,
+    template: `%s | ${appName}`,
   },
-  description: "Customer, invoice, payment, and service management for Frozen Solution and Primecut Services.",
-  keywords: ["Primozen", "Frozen Solution", "Primecut Services", "invoices", "payments", "customers", "service management"],
+  description: appDescription,
+  keywords: [appName, "Frozen Solution", "Primecut Services", "invoices", "payments", "customers", "service management"],
   icons: {
     icon: [
       { url: "/favicon.ico", sizes: "any" },
@@ -30,9 +34,9 @@ export const metadata: Metadata = {
     apple: "/apple-icon.png",
   },
   openGraph: {
-    title: "Primozen | Frozen Solution + Primecut Services",
-    description: "Customer, invoice, payment, and service management for Frozen Solution and Primecut Services.",
-    siteName: "Primozen",
+    title: appTitle,
+    description: appDescription,
+    siteName: appName,
     url: "/",
     locale: "en_CA",
     type: "website",
@@ -47,8 +51,8 @@ export const metadata: Metadata = {
   },
   twitter: {
     card: "summary_large_image",
-    title: "Primozen | Frozen Solution + Primecut Services",
-    description: "Customer, invoice, payment, and service management for Frozen Solution and Primecut Services.",
+    title: appTitle,
+    description: appDescription,
     images: ["/primozen-meta-image.png"],
   },
 };
