@@ -15,7 +15,8 @@ import {
   Menu,
   Bell,
   Activity,
-  UserCircle
+  UserCircle,
+  Mail
 } from "lucide-react"
 import { cn } from "@/lib/utils"
 import { Button } from "@/components/ui/button"
@@ -140,6 +141,7 @@ export default function DashboardLayout({
 
   const menuItems = [
     { href: "/dashboard", icon: LayoutDashboard, label: "Overview" },
+    { href: "/dashboard/enquiries", icon: Mail, label: "Enquiries" },
     { href: "/dashboard/customers", icon: Users, label: "Customers" },
     { href: "/dashboard/services", icon: Handshake, label: "Services" },
     ...(canManageFinancials ? [

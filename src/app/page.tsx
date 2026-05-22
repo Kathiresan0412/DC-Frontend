@@ -3,7 +3,7 @@
 import * as React from "react"
 import Image from "next/image"
 import Link from "next/link"
-import { ArrowRight, CheckCircle2, Clock3, Mail, MapPin, Phone, Send, ShieldCheck, Snowflake, Sparkles, TreePine } from "lucide-react"
+import { ArrowRight, CheckCircle2, Clock3, Mail, MapPin, Phone, Send, ShieldCheck, Snowflake, Sparkles, TreePine, Check, ChevronDown, ChevronUp, X, Search } from "lucide-react"
 import { toast } from "sonner"
 
 import { Button, buttonVariants } from "@/components/ui/button"
@@ -74,7 +74,7 @@ const initialForm = {
   email: "",
   phone: "",
   address: "",
-  serviceId: "",
+  serviceIds: [] as string[],
   message: "",
 }
 
@@ -86,8 +86,17 @@ export default function CustomerLandingPage() {
   const [isSubmitting, setIsSubmitting] = React.useState(false)
   const [showAllServices, setShowAllServices] = React.useState(false)
 
+  const [isDropdownOpen, setIsDropdownOpen] = React.useState(false)
+  const [dropdownSearch, setDropdownSearch] = React.useState("")
+  const [categoryFilter, setCategoryFilter] = React.useState<"all" | "snow" | "lawn">("all")
+  const dropdownRef = React.useRef<HTMLDivElement>(null)
+
   const businessContacts = React.useMemo(() => new Map(landingBusinesses.map((business) => [business.name, business])), [landingBusinesses])
-  const selectedService = React.useMemo(() => services.find((service) => service.id === form.serviceId) || services[0], [form.serviceId, services])
+  
+  const selectedServices = React.useMemo(() => {
+    return services.filter((service) => form.serviceIds.includes(service.id))
+  }, [form.serviceIds, services])
+
   const visibleServices = React.useMemo(
     () => showAllServices ? services : services.slice(0, servicePreviewLimit),
     [services, showAllServices]
@@ -115,12 +124,36 @@ export default function CustomerLandingPage() {
   }, [])
 
   React.useEffect(() => {
-    if (!form.serviceId && services[0]?.id) {
-      setForm((current) => ({ ...current, serviceId: services[0].id }))
+    if (form.serviceIds.length === 0 && services[0]?.id) {
+      setForm((current) => ({ ...current, serviceIds: [services[0].id] }))
     }
-  }, [form.serviceId, services])
+  }, [form.serviceIds, services])
 
-  const updateField = (field: keyof typeof form, value: string) => {
+  React.useEffect(() => {
+    const handleClickOutside = (event: MouseEvent) => {
+      if (dropdownRef.current && !dropdownRef.current.contains(event.target as Node)) {
+        setIsDropdownOpen(false)
+      }
+    }
+    document.addEventListener("mousedown", handleClickOutside)
+    return () => document.removeEventListener("mousedown", handleClickOutside)
+  }, [])
+
+  const filteredServicesForDropdown = React.useMemo(() => {
+    return services.filter((service) => {
+      const matchesSearch = service.name.toLowerCase().includes(dropdownSearch.toLowerCase()) ||
+                            service.business.toLowerCase().includes(dropdownSearch.toLowerCase())
+      
+      const matchesCategory = 
+        categoryFilter === "all" ||
+        (categoryFilter === "snow" && service.business === "Frozen Solution") ||
+        (categoryFilter === "lawn" && service.business === "Primecut Services")
+        
+      return matchesSearch && matchesCategory
+    })
+  }, [services, dropdownSearch, categoryFilter])
+
+  const updateField = <K extends keyof typeof form>(field: K, value: typeof form[K]) => {
     setForm((current) => ({ ...current, [field]: value }))
   }
 
@@ -134,12 +167,15 @@ export default function CustomerLandingPage() {
 
   const submitEnquiry = async (event: React.FormEvent<HTMLFormElement>) => {
     event.preventDefault()
-    if (!selectedService) {
-      toast.error("Please choose a service.")
+    if (selectedServices.length === 0) {
+      toast.error("Please choose at least one service.")
       return
     }
 
     setIsSubmitting(true)
+
+    const businessNames = Array.from(new Set(selectedServices.map((s) => s.business))).join(", ")
+    const serviceNames = selectedServices.map((s) => s.name).join(", ")
 
     try {
       await publicEnquiryApi.create({
@@ -147,12 +183,13 @@ export default function CustomerLandingPage() {
         email: form.email,
         phone: form.phone,
         address: form.address,
-        business: selectedService.business,
-        service: selectedService.name,
+        business: businessNames,
+        service: serviceNames,
         message: form.message,
+        serviceIds: form.serviceIds,
       })
       toast.success("Enquiry sent. Our team will contact you shortly.")
-      setForm({ ...initialForm, serviceId: form.serviceId })
+      setForm({ ...initialForm, serviceIds: form.serviceIds })
     } catch (error) {
       toast.error(getApiErrorMessage(error, "Could not send enquiry. Please call or email us."))
     } finally {
@@ -363,18 +400,189 @@ export default function CustomerLandingPage() {
                   <Label htmlFor="email">Email</Label>
                   <Input id="email" type="email" value={form.email} onChange={(event) => updateField("email", event.target.value)} required autoComplete="email" />
                 </div>
-                <div className="space-y-2">
-                  <Label>Service</Label>
-                  <Select value={form.serviceId} onValueChange={(value) => value && updateField("serviceId", value)}>
-                    <SelectTrigger className="h-10 w-full">
-                      <SelectValue />
-                    </SelectTrigger>
-                    <SelectContent>
-                      {services.map((service) => (
-                        <SelectItem key={service.id} value={service.id}>{service.business} - {service.name}</SelectItem>
-                      ))}
-                    </SelectContent>
-                  </Select>
+                <div className="space-y-2 relative" ref={dropdownRef}>
+                  <Label>Services</Label>
+                  <button
+                    type="button"
+                    onClick={() => setIsDropdownOpen(!isDropdownOpen)}
+                    className="flex min-h-10 w-full items-center justify-between rounded-lg border border-input bg-transparent px-3 py-2 text-sm focus-visible:ring-3 focus-visible:ring-ring/50 focus-visible:border-ring outline-none transition-all cursor-pointer text-left"
+                  >
+                    <div className="flex flex-wrap gap-1.5 max-w-[90%]">
+                      {selectedServices.length === 0 ? (
+                        <span className="text-muted-foreground">Select services...</span>
+                      ) : (
+                        selectedServices.map((service) => {
+                          const isWinter = service.business === "Frozen Solution"
+                          return (
+                            <span
+                              key={service.id}
+                              className={cn(
+                                "inline-flex items-center gap-1 rounded px-2 py-0.5 text-xs font-semibold border shadow-sm",
+                                isWinter 
+                                  ? "bg-sky-500/10 text-sky-700 border-sky-500/20 dark:text-sky-300 dark:bg-sky-500/20"
+                                  : "bg-emerald-500/10 text-emerald-700 border-emerald-500/20 dark:text-emerald-300 dark:bg-emerald-500/20"
+                              )}
+                            >
+                              {isWinter ? <Snowflake className="size-3" /> : <TreePine className="size-3" />}
+                              {service.name}
+                            </span>
+                          )
+                        })
+                      )}
+                    </div>
+                    {isDropdownOpen ? <ChevronUp className="size-4 shrink-0 opacity-50" /> : <ChevronDown className="size-4 shrink-0 opacity-50" />}
+                  </button>
+
+                  {isDropdownOpen && (
+                    <div className="absolute left-0 right-0 z-50 mt-1 w-full max-h-[26rem] overflow-hidden rounded-xl border border-border bg-card p-3 shadow-2xl animate-in fade-in slide-in-from-top-2 duration-200">
+                      {/* Search Bar */}
+                      <div className="relative mb-2">
+                        <Search className="absolute left-3 top-1/2 size-4 -translate-y-1/2 text-muted-foreground" />
+                        <Input
+                          value={dropdownSearch}
+                          onChange={(e) => setDropdownSearch(e.target.value)}
+                          placeholder="Search services..."
+                          className="h-9 pl-9 pr-8 text-xs bg-background"
+                          autoFocus
+                        />
+                        {dropdownSearch && (
+                          <button
+                            type="button"
+                            onClick={() => setDropdownSearch("")}
+                            className="absolute right-2.5 top-1/2 -translate-y-1/2 text-muted-foreground hover:text-foreground"
+                          >
+                            <X className="size-3.5" />
+                          </button>
+                        )}
+                      </div>
+
+                      {/* Filter Tabs */}
+                      <div className="flex gap-1 mb-3 border-b border-border/50 pb-2">
+                        <button
+                          type="button"
+                          onClick={() => setCategoryFilter("all")}
+                          className={cn(
+                            "rounded px-2.5 py-1 text-xs font-semibold transition-all",
+                            categoryFilter === "all"
+                              ? "bg-primary text-primary-foreground"
+                              : "text-muted-foreground hover:bg-accent hover:text-accent-foreground"
+                          )}
+                        >
+                          All
+                        </button>
+                        <button
+                          type="button"
+                          onClick={() => setCategoryFilter("snow")}
+                          className={cn(
+                            "rounded px-2.5 py-1 text-xs font-semibold transition-all inline-flex items-center gap-1",
+                            categoryFilter === "snow"
+                              ? "bg-sky-500 text-white dark:bg-sky-600"
+                              : "text-muted-foreground hover:bg-accent hover:text-accent-foreground"
+                          )}
+                        >
+                          <Snowflake className="size-3" /> Snow Removal
+                        </button>
+                        <button
+                          type="button"
+                          onClick={() => setCategoryFilter("lawn")}
+                          className={cn(
+                            "rounded px-2.5 py-1 text-xs font-semibold transition-all inline-flex items-center gap-1",
+                            categoryFilter === "lawn"
+                              ? "bg-emerald-500 text-white dark:bg-emerald-600"
+                              : "text-muted-foreground hover:bg-accent hover:text-accent-foreground"
+                          )}
+                        >
+                          <TreePine className="size-3" /> Lawn Mowing
+                        </button>
+                      </div>
+
+                      {/* Services Options List */}
+                      <div className="max-h-64 overflow-y-auto space-y-1.5 pr-0.5">
+                        {filteredServicesForDropdown.length === 0 ? (
+                          <div className="py-6 text-center text-xs text-muted-foreground">No services found.</div>
+                        ) : (
+                          filteredServicesForDropdown.map((service) => {
+                            const isSelected = form.serviceIds.includes(service.id)
+                            const isWinter = service.business === "Frozen Solution"
+                            const serviceImage = getServiceImage(service)
+
+                            return (
+                              <div
+                                key={service.id}
+                                onClick={() => {
+                                  if (isSelected) {
+                                    updateField(
+                                      "serviceIds",
+                                      form.serviceIds.filter((id) => id !== service.id)
+                                    )
+                                  } else {
+                                    updateField("serviceIds", [...form.serviceIds, service.id])
+                                  }
+                                }}
+                                className={cn(
+                                  "flex items-start gap-3 p-2.5 rounded-lg cursor-pointer transition-all border relative select-none",
+                                  isSelected
+                                    ? "bg-accent/40 border-primary/50"
+                                    : "border-border/50 hover:bg-accent/20"
+                                )}
+                              >
+                                {/* Thumbnail Image */}
+                                <div className="relative size-12 overflow-hidden rounded-md bg-muted border border-border shrink-0">
+                                  <Image
+                                    src={serviceImage}
+                                    alt=""
+                                    fill
+                                    className="object-cover"
+                                    sizes="48px"
+                                  />
+                                </div>
+
+                                {/* Service details */}
+                                <div className="flex-1 min-w-0">
+                                  <div className="flex items-center gap-1.5 flex-wrap">
+                                    <span className="text-xs font-bold leading-tight">{service.name}</span>
+                                    <span
+                                      className={cn(
+                                        "rounded-full px-1.5 py-0.2 text-[9px] font-semibold border uppercase tracking-wider",
+                                        isWinter
+                                          ? "bg-sky-500/10 text-sky-700 border-sky-500/20 dark:text-sky-300"
+                                          : "bg-emerald-500/10 text-emerald-700 border-emerald-500/20 dark:text-emerald-300"
+                                      )}
+                                    >
+                                      {service.business}
+                                    </span>
+                                  </div>
+                                  <p className="mt-1 text-[11px] leading-snug text-muted-foreground line-clamp-1">
+                                    {service.description || "Reliable and high-quality seasonal property service."}
+                                  </p>
+                                  <p className="mt-1 text-xs font-bold text-foreground">
+                                    {formatCurrency(service.price)}
+                                    <span className="ml-1 text-[10px] font-normal text-muted-foreground">
+                                      {service.billing}
+                                    </span>
+                                  </p>
+                                </div>
+
+                                {/* Custom Checkbox on Far Right */}
+                                <div className="flex items-center self-center shrink-0">
+                                  <div
+                                    className={cn(
+                                      "size-4 rounded flex items-center justify-center border transition-all",
+                                      isSelected
+                                        ? "bg-primary border-primary text-primary-foreground"
+                                        : "border-muted-foreground/30 bg-transparent"
+                                    )}
+                                  >
+                                    {isSelected && <Check className="size-3 stroke-[3]" />}
+                                  </div>
+                                </div>
+                              </div>
+                            )
+                          })
+                        )}
+                      </div>
+                    </div>
+                  )}
                 </div>
                 <div className="space-y-2 sm:col-span-2">
                   <Label htmlFor="address">Service address</Label>

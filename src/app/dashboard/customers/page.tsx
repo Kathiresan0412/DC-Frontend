@@ -24,7 +24,7 @@ import {
   DropdownMenuTrigger,
 } from "@/components/ui/dropdown-menu"
 import { cn } from "@/lib/utils"
-import { Edit2, Loader2, Mail, MapPin, MoreVertical, Phone, Plus, Search, Trash2 } from "lucide-react"
+import { Edit2, Loader2, Mail, MapPin, MoreVertical, Phone, Plus, Search, Trash2, Snowflake, TreePine } from "lucide-react"
 import { toast } from "sonner"
 
 const customerStatuses: CustomerStatus[] = ["Active", "Due", "New lead"]
@@ -57,7 +57,8 @@ const customerVoiceAliases = {
   status: ["status"],
   balance: ["balance", "receivable", "amount due"],
   lastService: ["last service", "last visit"],
-} satisfies Record<keyof CustomerPayload, string[]>
+  serviceIds: ["services", "service ids"],
+} satisfies Partial<Record<keyof CustomerPayload, string[]>>
 
 const voiceLabels = Object.values(customerVoiceAliases).flat().sort((a, b) => b.length - a.length)
 const escapeRegExp = (value: string) => value.replace(/[.*+?^${}()|[\]\\]/g, "\\$&")
@@ -95,6 +96,8 @@ const parseCustomerVoice = (transcript: string): Partial<CustomerPayload> => {
     } else if (field === "status") {
       const normalizedStatus = customerStatuses.find((status) => value.toLowerCase().includes(status.toLowerCase()))
       if (normalizedStatus) updates.status = normalizedStatus
+    } else if (field === "serviceIds") {
+      updates.serviceIds = value.split(/,\s*/)
     } else {
       updates[field] = value as never
     }
@@ -357,7 +360,23 @@ export default function CustomersPage() {
                     <h2 className="text-lg font-semibold">{customer.name}</h2>
                     <span className={cn("rounded-md px-2 py-1 text-xs font-semibold", statusClasses[customer.status])}>{customer.status}</span>
                   </div>
-                  <p className="mt-1 text-sm text-muted-foreground">{[customer.id, customer.business].filter(Boolean).join(" • ")}</p>
+                  <div className="flex flex-wrap items-center gap-1.5 mt-1.5">
+                    {customer.is_Frozen && (
+                      <span className="inline-flex items-center gap-1 rounded px-2 py-0.5 text-xs font-semibold bg-sky-500/10 text-sky-700 border border-sky-500/20 dark:text-sky-300 dark:bg-sky-500/20 shadow-sm">
+                        <Snowflake className="h-3 w-3" /> Frozen Solution
+                      </span>
+                    )}
+                    {customer.is_primecut && (
+                      <span className="inline-flex items-center gap-1 rounded px-2 py-0.5 text-xs font-semibold bg-emerald-500/10 text-emerald-700 border border-emerald-500/20 dark:text-emerald-300 dark:bg-emerald-500/20 shadow-sm">
+                        <TreePine className="h-3 w-3" /> Primecut Services
+                      </span>
+                    )}
+                    {!customer.is_Frozen && !customer.is_primecut && customer.business && (
+                      <span className="inline-flex items-center gap-1 rounded px-2 py-0.5 text-xs font-semibold bg-muted text-muted-foreground border border-muted-foreground/15 shadow-sm">
+                        {customer.business}
+                      </span>
+                    )}
+                  </div>
                 </div>
                 <div className="flex items-start justify-between gap-3 sm:justify-end">
                   <div className="text-left sm:text-right">

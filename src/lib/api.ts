@@ -41,9 +41,12 @@ export type Customer = {
   lastService: string
   created_at?: string
   updated_at?: string
+  serviceIds?: string[]
+  is_Frozen?: boolean
+  is_primecut?: boolean
 }
 
-export type CustomerPayload = Pick<Customer, 'name' | 'email' | 'phone' | 'address' | 'status' | 'balance'> & Partial<Pick<Customer, 'business' | 'plan' | 'lastService'>>
+export type CustomerPayload = Pick<Customer, 'name' | 'email' | 'phone' | 'address' | 'status' | 'balance'> & Partial<Pick<Customer, 'business' | 'plan' | 'lastService' | 'serviceIds' | 'is_Frozen' | 'is_primecut'>>
 
 export type PublicEnquiryPayload = {
   name: string
@@ -53,6 +56,7 @@ export type PublicEnquiryPayload = {
   business: string
   service: string
   message?: string
+  serviceIds?: string[]
 }
 
 export type ServiceStatus = 'Active' | 'Inactive'
@@ -125,6 +129,7 @@ export type Invoice = {
   email: string
   business: string
   serviceId: string
+  serviceIds?: string[]
   service: string
   issued: string
   due: string
@@ -145,6 +150,7 @@ export type Invoice = {
 export type InvoicePayload = {
   customerId: string
   serviceId: string
+  serviceIds?: string[]
   due: string
   amount: number
   paid?: number
